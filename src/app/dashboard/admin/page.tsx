@@ -19,6 +19,9 @@ import {
 
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,126 +38,77 @@ const AdminDashboard = () => {
     }
   }, [router]);
 
-  if (!user) {
-    return <div>Loading...</div>;
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/dashboard/admin');
+        const data = await response.json();
+
+        if (data.success) {
+          setDashboardData(data.data);
+        } else {
+          throw new Error('Failed to fetch dashboard data');
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+
+        // Fallback data
+        setDashboardData({
+          stats: [
+            {
+              title: 'Total Santri',
+              value: '250',
+              change: '+12%',
+              changeType: 'increase',
+              icon: 'Users',
+              color: 'text-blue-600',
+              bgColor: 'bg-blue-50'
+            }
+          ],
+          recentActivities: [],
+          upcomingEvents: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
+
+  if (!user || loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat dashboard...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
-  // Mock data - in real app, fetch from API
-  const stats = [
-    {
-      title: 'Total Santri',
-      value: '250',
-      change: '+12',
-      changeType: 'increase',
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Hafidz/Hafidzah',
-      value: '50',
-      change: '+5',
-      changeType: 'increase',
-      icon: GraduationCap,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Total Donasi Bulan Ini',
-      value: 'Rp 25.5M',
-      change: '+15%',
-      changeType: 'increase',
-      icon: Heart,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
-    },
-    {
-      title: 'Pendapatan SPP',
-      value: 'Rp 45.2M',
-      change: '+8%',
-      changeType: 'increase',
-      icon: CreditCard,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    },
-    {
-      title: 'Halaqah Aktif',
-      value: '15',
-      change: '+2',
-      changeType: 'increase',
-      icon: BookOpen,
-      color: 'text-teal-600',
-      bgColor: 'bg-teal-50'
-    },
-    {
-      title: 'Tingkat Kehadiran',
-      value: '95%',
-      change: '+2%',
-      changeType: 'increase',
-      icon: Calendar,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50'
-    }
-  ];
+  // Icon mapping
+  const iconMap: Record<string, React.ElementType> = {
+    Users,
+    GraduationCap,
+    Heart,
+    CreditCard,
+    BookOpen,
+    Calendar,
+    Award,
+    TrendingUp
+  };
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'payment',
-      message: 'Pembayaran SPP dari Ahmad Fauzi telah diterima',
-      time: '5 menit yang lalu',
-      icon: CreditCard,
-      color: 'text-green-600'
-    },
-    {
-      id: 2,
-      type: 'donation',
-      message: 'Donasi Rp 500.000 dari Ibu Siti untuk program beasiswa',
-      time: '15 menit yang lalu',
-      icon: Heart,
-      color: 'text-red-600'
-    },
-    {
-      id: 3,
-      type: 'hafalan',
-      message: 'Muhammad Rizki menyelesaikan hafalan Surah Al-Baqarah',
-      time: '1 jam yang lalu',
-      icon: Award,
-      color: 'text-yellow-600'
-    },
-    {
-      id: 4,
-      type: 'registration',
-      message: 'Pendaftaran santri baru: Fatimah Zahra',
-      time: '2 jam yang lalu',
-      icon: Users,
-      color: 'text-blue-600'
-    }
-  ];
-
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: 'Ujian Hafalan Juz 30',
-      date: '2024-02-15',
-      time: '08:00',
-      participants: 25
-    },
-    {
-      id: 2,
-      title: 'Wisuda Hafidz Angkatan 16',
-      date: '2024-02-20',
-      time: '09:00',
-      participants: 15
-    },
-    {
-      id: 3,
-      title: 'Rapat Wali Santri',
-      date: '2024-02-25',
-      time: '14:00',
-      participants: 100
-    }
-  ];
+  const stats = dashboardData?.stats || [];
+  const recentActivities = dashboardData?.recentActivities || [];
+  const upcomingEvents = dashboardData?.upcomingEvents || [];
 
   return (
     <DashboardLayout>
@@ -169,10 +123,18 @@ const AdminDashboard = () => {
           </p>
         </div>
 
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-600">{error}</p>
+            <p className="text-red-500 text-sm">Menampilkan data fallback</p>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
+          {stats.map((stat: any) => {
+            const Icon = iconMap[stat.icon] || Users;
             return (
               <Card key={stat.title} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
@@ -221,8 +183,8 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivities.map((activity) => {
-                  const Icon = activity.icon;
+                {recentActivities.length > 0 ? recentActivities.map((activity: any) => {
+                  const Icon = iconMap[activity.icon] || CreditCard;
                   return (
                     <div key={activity.id} className="flex items-start space-x-3">
                       <div className={`p-2 rounded-full bg-gray-50`}>
@@ -238,7 +200,12 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   );
-                })}
+                }) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Belum ada aktivitas terbaru</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -253,7 +220,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingEvents.map((event) => (
+                {upcomingEvents.length > 0 ? upcomingEvents.map((event: any) => (
                   <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <h4 className="text-sm font-medium text-gray-900">
@@ -272,7 +239,12 @@ const AdminDashboard = () => {
                       </p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Belum ada kegiatan mendatang</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
