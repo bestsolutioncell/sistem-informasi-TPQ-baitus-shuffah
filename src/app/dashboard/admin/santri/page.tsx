@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Badge } from '@/components/ui/badge';
-import SantriForm from '@/components/forms/SantriForm';
-import { 
-  GraduationCap, 
-  Plus, 
-  Search, 
-  Edit, 
+import { useAuth } from '@/components/providers/AuthProvider';
+import AddStudentModal from '@/components/modals/AddStudentModal';
+import StudentDetailModal from '@/components/modals/StudentDetailModal';
+import {
+  GraduationCap,
+  Plus,
+  Search,
+  Edit,
   Trash2,
   Eye,
   Download,
@@ -19,7 +21,6 @@ import {
   BookOpen,
   Calendar
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface Santri {
   id: string;
@@ -54,13 +55,16 @@ interface Santri {
 }
 
 export default function SantriPage() {
-  const [santri, setSantri] = useState<Santri[]>([]);
+  const { user } = useAuth();
+  const [santri, setSantri] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [halaqahFilter, setHalaqahFilter] = useState('ALL');
-  const [showForm, setShowForm] = useState(false);
-  const [editingSantri, setEditingSantri] = useState<Santri | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editingSantri, setEditingSantri] = useState<any>(null);
+  const [selectedSantri, setSelectedSantri] = useState<any>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [halaqahList, setHalaqahList] = useState<any[]>([]);
 
@@ -72,16 +76,77 @@ export default function SantriPage() {
   const loadSantri = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/santri');
-      if (response.ok) {
-        const data = await response.json();
-        setSantri(data.santri || []);
-      } else {
-        toast.error('Gagal memuat data santri');
-      }
+      // Mock data for now - replace with API call later
+      const mockSantri = [
+        {
+          id: '1',
+          name: 'Ahmad Fauzi',
+          nis: '24001',
+          gender: 'L',
+          birthPlace: 'Jakarta',
+          birthDate: '2010-05-15',
+          address: 'Jl. Masjid No. 123, Jakarta Selatan',
+          phone: '081234567890',
+          parentName: 'Bapak Ahmad',
+          parentPhone: '081234567891',
+          parentEmail: 'ahmad.parent@email.com',
+          parentOccupation: 'Wiraswasta',
+          halaqah: 'Al-Fatihah',
+          musyrif: 'Ustadz Abdullah',
+          joinDate: '2024-01-15',
+          status: 'ACTIVE',
+          previousEducation: 'TK Al-Ikhlas',
+          medicalInfo: 'Tidak ada alergi',
+          notes: 'Santri yang rajin dan disiplin'
+        },
+        {
+          id: '2',
+          name: 'Siti Aisyah',
+          nis: '24002',
+          gender: 'P',
+          birthPlace: 'Bandung',
+          birthDate: '2011-03-20',
+          address: 'Jl. Pondok No. 456, Jakarta Timur',
+          phone: '081234567892',
+          parentName: 'Ibu Siti',
+          parentPhone: '081234567893',
+          parentEmail: 'siti.parent@email.com',
+          parentOccupation: 'Guru',
+          halaqah: 'Al-Fatihah',
+          musyrif: 'Ustadzah Fatimah',
+          joinDate: '2024-02-01',
+          status: 'ACTIVE',
+          previousEducation: 'TK Pertiwi',
+          medicalInfo: 'Alergi seafood',
+          notes: 'Santri yang cerdas dan aktif'
+        },
+        {
+          id: '3',
+          name: 'Muhammad Rizki',
+          nis: '24003',
+          gender: 'L',
+          birthPlace: 'Surabaya',
+          birthDate: '2009-12-10',
+          address: 'Jl. Tahfidz No. 789, Jakarta Barat',
+          phone: '081234567894',
+          parentName: 'Bapak Rizki',
+          parentPhone: '081234567895',
+          parentEmail: 'rizki.parent@email.com',
+          parentOccupation: 'Pegawai Negeri',
+          halaqah: 'Al-Baqarah',
+          musyrif: 'Ustadz Abdullah',
+          joinDate: '2023-12-10',
+          status: 'ACTIVE',
+          previousEducation: 'SD Negeri 1',
+          medicalInfo: 'Sehat',
+          notes: 'Santri yang tekun dalam hafalan'
+        }
+      ];
+
+      setSantri(mockSantri);
     } catch (error) {
       console.error('Error loading santri:', error);
-      toast.error('Gagal memuat data santri');
+      alert('Gagal memuat data santri');
     } finally {
       setLoading(false);
     }
@@ -89,11 +154,14 @@ export default function SantriPage() {
 
   const loadHalaqahList = async () => {
     try {
-      const response = await fetch('/api/halaqah');
-      if (response.ok) {
-        const data = await response.json();
-        setHalaqahList(data.halaqah || []);
-      }
+      // Mock halaqah data
+      const mockHalaqah = [
+        { id: '1', name: 'Halaqah Al-Fatihah', level: 'Pemula' },
+        { id: '2', name: 'Halaqah Al-Baqarah', level: 'Menengah' },
+        { id: '3', name: 'Halaqah Ali Imran', level: 'Lanjutan' },
+        { id: '4', name: 'Halaqah An-Nisa', level: 'Mahir' }
+      ];
+      setHalaqahList(mockHalaqah);
     } catch (error) {
       console.error('Error loading halaqah:', error);
     }
@@ -102,23 +170,17 @@ export default function SantriPage() {
   const handleCreateSantri = async (santriData: any) => {
     try {
       setFormLoading(true);
-      const response = await fetch('/api/santri', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(santriData)
-      });
-
-      if (response.ok) {
-        toast.success('Santri berhasil dibuat');
-        setShowForm(false);
-        loadSantri();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Gagal membuat santri');
-      }
+      // Mock create - add to local state
+      const newSantri = {
+        ...santriData,
+        id: `student_${Date.now()}`
+      };
+      setSantri(prev => [...prev, newSantri]);
+      alert('Santri berhasil ditambahkan!');
+      setShowAddModal(false);
     } catch (error) {
       console.error('Error creating santri:', error);
-      toast.error('Gagal membuat santri');
+      alert('Gagal menambahkan santri');
     } finally {
       setFormLoading(false);
     }
@@ -127,24 +189,16 @@ export default function SantriPage() {
   const handleUpdateSantri = async (santriData: any) => {
     try {
       setFormLoading(true);
-      const response = await fetch(`/api/santri/${editingSantri?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(santriData)
-      });
-
-      if (response.ok) {
-        toast.success('Santri berhasil diupdate');
-        setEditingSantri(null);
-        setShowForm(false);
-        loadSantri();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Gagal mengupdate santri');
-      }
+      // Mock update - update local state
+      setSantri(prev => prev.map(s =>
+        s.id === editingSantri?.id ? { ...santriData, id: editingSantri.id } : s
+      ));
+      alert('Data santri berhasil diperbarui!');
+      setEditingSantri(null);
+      setShowAddModal(false);
     } catch (error) {
       console.error('Error updating santri:', error);
-      toast.error('Gagal mengupdate santri');
+      alert('Gagal memperbarui data santri');
     } finally {
       setFormLoading(false);
     }
@@ -154,32 +208,36 @@ export default function SantriPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus santri ini?')) return;
 
     try {
-      const response = await fetch(`/api/santri/${santriId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        toast.success('Santri berhasil dihapus');
-        loadSantri();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Gagal menghapus santri');
-      }
+      // Mock delete - remove from local state
+      setSantri(prev => prev.filter(s => s.id !== santriId));
+      alert('Santri berhasil dihapus!');
+      setShowDetailModal(false);
     } catch (error) {
       console.error('Error deleting santri:', error);
-      toast.error('Gagal menghapus santri');
+      alert('Gagal menghapus santri');
     }
+  };
+
+  const handleViewDetail = (santri: any) => {
+    setSelectedSantri(santri);
+    setShowDetailModal(true);
+  };
+
+  const handleEditSantri = (santri: any) => {
+    setEditingSantri(santri);
+    setShowDetailModal(false);
+    setShowAddModal(true);
   };
 
   const filteredSantri = santri.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          s.nis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         s.wali.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         (s.parentName && s.parentName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
-    const matchesHalaqah = halaqahFilter === 'ALL' || 
+    const matchesHalaqah = halaqahFilter === 'ALL' ||
                           (halaqahFilter === 'NONE' && !s.halaqah) ||
-                          (s.halaqah && s.halaqah.id === halaqahFilter);
-    
+                          s.halaqah === halaqahFilter;
+
     return matchesSearch && matchesStatus && matchesHalaqah;
   });
 
@@ -188,7 +246,7 @@ export default function SantriPage() {
       case 'ACTIVE': return 'success';
       case 'INACTIVE': return 'secondary';
       case 'GRADUATED': return 'warning';
-      case 'DROPPED_OUT': return 'destructive';
+      case 'DROPPED': return 'destructive';
       default: return 'secondary';
     }
   };
@@ -198,13 +256,13 @@ export default function SantriPage() {
       case 'ACTIVE': return 'Aktif';
       case 'INACTIVE': return 'Tidak Aktif';
       case 'GRADUATED': return 'Lulus';
-      case 'DROPPED_OUT': return 'Keluar';
+      case 'DROPPED': return 'Keluar';
       default: return status;
     }
   };
 
   const getGenderLabel = (gender: string) => {
-    return gender === 'MALE' ? 'Laki-laki' : 'Perempuan';
+    return gender === 'L' ? 'Laki-laki' : 'Perempuan';
   };
 
   const calculateAge = (birthDate: string) => {
@@ -220,29 +278,7 @@ export default function SantriPage() {
     return age;
   };
 
-  if (showForm) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <SantriForm
-            santri={editingSantri ? {
-              ...editingSantri,
-              birthDate: editingSantri.birthDate.split('T')[0],
-              enrollmentDate: editingSantri.enrollmentDate.split('T')[0],
-              graduationDate: editingSantri.graduationDate ? editingSantri.graduationDate.split('T')[0] : '',
-              halaqahId: editingSantri.halaqah?.id || ''
-            } : undefined}
-            onSubmit={editingSantri ? handleUpdateSantri : handleCreateSantri}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingSantri(null);
-            }}
-            isLoading={formLoading}
-          />
-        </div>
-      </DashboardLayout>
-    );
-  }
+
 
   return (
     <DashboardLayout>
@@ -257,7 +293,7 @@ export default function SantriPage() {
             </div>
           </div>
           <Button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowAddModal(true)}
             className="bg-teal-600 hover:bg-teal-700 flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -323,9 +359,9 @@ export default function SantriPage() {
                   <p className="text-sm text-gray-600">Santri Baru</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {santri.filter(s => {
-                      const enrollDate = new Date(s.enrollmentDate);
+                      const enrollDate = new Date(s.joinDate);
                       const thisMonth = new Date();
-                      return enrollDate.getMonth() === thisMonth.getMonth() && 
+                      return enrollDate.getMonth() === thisMonth.getMonth() &&
                              enrollDate.getFullYear() === thisMonth.getFullYear();
                     }).length}
                   </p>
@@ -451,15 +487,15 @@ export default function SantriPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div>
-                            <p className="font-medium text-gray-900">{s.wali.name}</p>
-                            <p className="text-sm text-gray-600">{s.wali.phone}</p>
+                            <p className="font-medium text-gray-900">{s.parentName}</p>
+                            <p className="text-sm text-gray-600">{s.parentPhone}</p>
                           </div>
                         </td>
                         <td className="py-4 px-4">
                           {s.halaqah ? (
                             <div>
-                              <p className="font-medium text-gray-900">{s.halaqah.name}</p>
-                              <p className="text-sm text-gray-600">{s.halaqah.level}</p>
+                              <p className="font-medium text-gray-900">{s.halaqah}</p>
+                              <p className="text-sm text-gray-600">{s.musyrif}</p>
                             </div>
                           ) : (
                             <span className="text-gray-400 text-sm">Belum ada halaqah</span>
@@ -472,7 +508,7 @@ export default function SantriPage() {
                         </td>
                         <td className="py-4 px-4">
                           <p className="text-sm text-gray-600">
-                            {new Date(s.enrollmentDate).toLocaleDateString('id-ID')}
+                            {new Date(s.joinDate).toLocaleDateString('id-ID')}
                           </p>
                         </td>
                         <td className="py-4 px-4">
@@ -480,9 +516,7 @@ export default function SantriPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                // View detail logic here
-                              }}
+                              onClick={() => handleViewDetail(s)}
                               className="flex items-center gap-1"
                             >
                               <Eye className="h-3 w-3" />
@@ -491,23 +525,11 @@ export default function SantriPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setEditingSantri(s);
-                                setShowForm(true);
-                              }}
+                              onClick={() => handleEditSantri(s)}
                               className="flex items-center gap-1"
                             >
                               <Edit className="h-3 w-3" />
                               Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteSantri(s.id)}
-                              className="flex items-center gap-1 text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Hapus
                             </Button>
                           </div>
                         </td>
@@ -519,6 +541,25 @@ export default function SantriPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Modals */}
+        <AddStudentModal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingSantri(null);
+          }}
+          onSave={editingSantri ? handleUpdateSantri : handleCreateSantri}
+          editData={editingSantri}
+        />
+
+        <StudentDetailModal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          onEdit={() => handleEditSantri(selectedSantri)}
+          onDelete={() => handleDeleteSantri(selectedSantri?.id)}
+          student={selectedSantri}
+        />
       </div>
     </DashboardLayout>
   );
