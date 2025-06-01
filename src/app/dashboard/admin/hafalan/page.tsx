@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useAuth } from '@/components/providers/AuthProvider';
+import AddHafalanModal from '@/components/modals/AddHafalanModal';
+import HafalanDetailModal from '@/components/modals/HafalanDetailModal';
 import {
   GraduationCap,
   Search,
@@ -48,7 +50,12 @@ const HafalanPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editingHafalan, setEditingHafalan] = useState<any>(null);
+  const [selectedHafalan, setSelectedHafalan] = useState<any>(null);
+  const [hafalanList, setHafalanList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   // Check authentication and role
@@ -84,87 +91,194 @@ const HafalanPage = () => {
     return null;
   }
 
-  // Mock data - in real app, fetch from API
-  const hafalanList: Hafalan[] = [
-    {
-      id: '1',
-      santriName: 'Ahmad Fauzi',
-      santriNis: '24001',
-      surahId: 2,
-      surahName: 'Al-Baqarah',
-      ayahStart: 1,
-      ayahEnd: 10,
-      type: 'SETORAN',
-      status: 'APPROVED',
-      grade: 85,
-      notes: 'Bacaan sudah baik, tajwid perlu diperbaiki sedikit',
-      musyrifName: 'Ustadz Abdullah',
-      recordedAt: '2024-02-10T08:30:00Z',
-      createdAt: '2024-02-10T08:00:00Z'
-    },
-    {
-      id: '2',
-      santriName: 'Siti Aisyah',
-      santriNis: '24002',
-      surahId: 3,
-      surahName: 'Ali Imran',
-      ayahStart: 1,
-      ayahEnd: 20,
-      type: 'SETORAN',
-      status: 'PENDING',
-      musyrifName: 'Ustadzah Fatimah',
-      recordedAt: '2024-02-11T09:00:00Z',
-      createdAt: '2024-02-11T08:45:00Z'
-    },
-    {
-      id: '3',
-      santriName: 'Muhammad Rizki',
-      santriNis: '24003',
-      surahId: 1,
-      surahName: 'Al-Fatihah',
-      ayahStart: 1,
-      ayahEnd: 7,
-      type: 'MURAJAAH',
-      status: 'APPROVED',
-      grade: 90,
-      notes: 'Excellent! Bacaan dan tajwid sangat baik',
-      musyrifName: 'Ustadz Muhammad',
-      recordedAt: '2024-02-09T10:15:00Z',
-      createdAt: '2024-02-09T10:00:00Z'
-    },
-    {
-      id: '4',
-      santriName: 'Fatimah Zahra',
-      santriNis: '23001',
-      surahId: 4,
-      surahName: 'An-Nisa',
-      ayahStart: 1,
-      ayahEnd: 15,
-      type: 'SETORAN',
-      status: 'NEEDS_IMPROVEMENT',
-      grade: 65,
-      notes: 'Perlu latihan lebih untuk makhorijul huruf',
-      musyrifName: 'Ustadzah Khadijah',
-      recordedAt: '2024-02-08T14:20:00Z',
-      createdAt: '2024-02-08T14:00:00Z'
-    },
-    {
-      id: '5',
-      santriName: 'Abdullah Rahman',
-      santriNis: '24004',
-      surahId: 2,
-      surahName: 'Al-Baqarah',
-      ayahStart: 11,
-      ayahEnd: 25,
-      type: 'TASMI',
-      status: 'APPROVED',
-      grade: 88,
-      notes: 'Hafalan kuat, lanjutkan ke ayat berikutnya',
-      musyrifName: 'Ustadz Abdullah',
-      recordedAt: '2024-02-07T11:30:00Z',
-      createdAt: '2024-02-07T11:15:00Z'
+  // Load hafalan data
+  useEffect(() => {
+    loadHafalanData();
+  }, []);
+
+  const loadHafalanData = async () => {
+    try {
+      setLoading(true);
+      // Mock hafalan data
+      const mockHafalan = [
+        {
+          id: '1',
+          santriId: '1',
+          santriName: 'Ahmad Fauzi',
+          surah: 'Al-Baqarah',
+          ayahStart: '40',
+          ayahEnd: '50',
+          ayahRange: '40-50',
+          type: 'SETORAN',
+          date: '2024-01-15',
+          musyrifId: '1',
+          musyrifName: 'Ustadz Abdullah',
+          tajwid: 80,
+          kelancaran: 90,
+          fashahah: 85,
+          grade: 85,
+          status: 'APPROVED',
+          notes: 'Baik, perlu perbaikan mad',
+          duration: '15',
+          corrections: 'Perbaiki mad pada ayat 45',
+          recommendations: 'Lanjutkan ke ayat berikutnya',
+          createdAt: '2024-01-15T08:00:00Z',
+          updatedAt: '2024-01-15T08:30:00Z'
+        },
+        {
+          id: '2',
+          santriId: '2',
+          santriName: 'Siti Aisyah',
+          surah: 'Ali Imran',
+          ayahStart: '115',
+          ayahEnd: '125',
+          ayahRange: '115-125',
+          type: 'SETORAN',
+          date: '2024-01-14',
+          musyrifId: '2',
+          musyrifName: 'Ustadzah Fatimah',
+          tajwid: 95,
+          kelancaran: 95,
+          fashahah: 95,
+          grade: 95,
+          status: 'APPROVED',
+          notes: 'Excellent, sangat baik',
+          duration: '12',
+          corrections: '',
+          recommendations: 'Siap untuk ayat selanjutnya',
+          createdAt: '2024-01-14T08:00:00Z',
+          updatedAt: '2024-01-14T08:20:00Z'
+        },
+        {
+          id: '3',
+          santriId: '3',
+          santriName: 'Muhammad Rizki',
+          surah: 'An-Nisa',
+          ayahStart: '75',
+          ayahEnd: '85',
+          ayahRange: '75-85',
+          type: 'MURAJAAH',
+          date: '2024-01-13',
+          musyrifId: '1',
+          musyrifName: 'Ustadz Abdullah',
+          tajwid: 70,
+          kelancaran: 80,
+          fashahah: 75,
+          grade: 75,
+          status: 'NEEDS_IMPROVEMENT',
+          notes: 'Perlu lebih fokus pada tajwid',
+          duration: '20',
+          corrections: 'Perbaiki bacaan qalqalah',
+          recommendations: 'Ulangi beberapa kali sebelum lanjut',
+          createdAt: '2024-01-13T08:00:00Z',
+          updatedAt: '2024-01-13T08:30:00Z'
+        }
+      ];
+
+      setHafalanList(mockHafalan);
+    } catch (error) {
+      console.error('Error loading hafalan:', error);
+      alert('Gagal memuat data hafalan');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleCreateHafalan = async (hafalanData: any) => {
+    try {
+      // Mock create - add to local state
+      const newHafalan = {
+        ...hafalanData,
+        id: `hafalan_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setHafalanList(prev => [...prev, newHafalan]);
+      alert('Evaluasi hafalan berhasil ditambahkan!');
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error creating hafalan:', error);
+      alert('Gagal menambahkan evaluasi hafalan');
+    }
+  };
+
+  const handleUpdateHafalan = async (hafalanData: any) => {
+    try {
+      // Mock update - update local state
+      setHafalanList(prev => prev.map(h =>
+        h.id === editingHafalan?.id ? { ...hafalanData, id: editingHafalan.id, updatedAt: new Date().toISOString() } : h
+      ));
+      alert('Evaluasi hafalan berhasil diperbarui!');
+      setEditingHafalan(null);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error updating hafalan:', error);
+      alert('Gagal memperbarui evaluasi hafalan');
+    }
+  };
+
+  const handleDeleteHafalan = async (hafalanId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus evaluasi hafalan ini?')) return;
+
+    try {
+      // Mock delete - remove from local state
+      setHafalanList(prev => prev.filter(h => h.id !== hafalanId));
+      alert('Evaluasi hafalan berhasil dihapus!');
+      setShowDetailModal(false);
+    } catch (error) {
+      console.error('Error deleting hafalan:', error);
+      alert('Gagal menghapus evaluasi hafalan');
+    }
+  };
+
+  const handleViewDetail = (hafalan: any) => {
+    setSelectedHafalan(hafalan);
+    setShowDetailModal(true);
+  };
+
+  const handleEditHafalan = (hafalan: any) => {
+    setEditingHafalan(hafalan);
+    setShowDetailModal(false);
+    setShowAddModal(true);
+  };
+
+  // Filter hafalan data
+  const filteredHafalan = hafalanList.filter(hafalan => {
+    const matchesSearch = hafalan.santriName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         hafalan.surah.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || hafalan.status === statusFilter;
+    const matchesType = typeFilter === 'ALL' || hafalan.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  // Calculate stats
+  const stats = {
+    total: hafalanList.length,
+    approved: hafalanList.filter(h => h.status === 'APPROVED').length,
+    pending: hafalanList.filter(h => h.status === 'PENDING').length,
+    needsImprovement: hafalanList.filter(h => h.status === 'NEEDS_IMPROVEMENT').length,
+    averageGrade: Math.round(
+      hafalanList
+        .filter(h => h.grade)
+        .reduce((sum, h) => sum + (h.grade || 0), 0) /
+      hafalanList.filter(h => h.grade).length || 1
+    )
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data hafalan...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -216,27 +330,7 @@ const HafalanPage = () => {
     return 'text-red-600';
   };
 
-  const filteredHafalan = hafalanList.filter(hafalan => {
-    const matchesSearch = hafalan.santriName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         hafalan.santriNis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         hafalan.surahName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || hafalan.status === statusFilter;
-    const matchesType = typeFilter === 'ALL' || hafalan.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
 
-  const stats = {
-    total: hafalanList.length,
-    approved: hafalanList.filter(h => h.status === 'APPROVED').length,
-    pending: hafalanList.filter(h => h.status === 'PENDING').length,
-    needsImprovement: hafalanList.filter(h => h.status === 'NEEDS_IMPROVEMENT').length,
-    averageGrade: Math.round(
-      hafalanList
-        .filter(h => h.grade)
-        .reduce((sum, h) => sum + (h.grade || 0), 0) / 
-      hafalanList.filter(h => h.grade).length
-    )
-  };
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -261,7 +355,7 @@ const HafalanPage = () => {
               Kelola dan pantau progress hafalan santri
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowAddModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Input Hafalan
           </Button>
@@ -415,10 +509,9 @@ const HafalanPage = () => {
                       </td>
                       <td className="py-3 px-4">
                         <div>
-                          <p className="font-medium text-gray-900">{hafalan.surahName}</p>
+                          <p className="font-medium text-gray-900">{hafalan.surah}</p>
                           <p className="text-sm text-gray-500">
-                            Ayat {hafalan.ayahStart}
-                            {hafalan.ayahEnd !== hafalan.ayahStart && ` - ${hafalan.ayahEnd}`}
+                            Ayat {hafalan.ayahRange}
                           </p>
                         </div>
                       </td>
@@ -449,19 +542,17 @@ const HafalanPage = () => {
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-sm text-gray-500">
-                          {formatDateTime(hafalan.recordedAt)}
+                          {formatDateTime(hafalan.date)}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleViewDetail(hafalan)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {hafalan.status === 'PENDING' && (
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button variant="outline" size="sm" onClick={() => handleEditHafalan(hafalan)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -483,6 +574,25 @@ const HafalanPage = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Modals */}
+        <AddHafalanModal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingHafalan(null);
+          }}
+          onSave={editingHafalan ? handleUpdateHafalan : handleCreateHafalan}
+          editData={editingHafalan}
+        />
+
+        <HafalanDetailModal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          onEdit={() => handleEditHafalan(selectedHafalan)}
+          onDelete={() => handleDeleteHafalan(selectedHafalan?.id)}
+          hafalan={selectedHafalan}
+        />
       </div>
     </DashboardLayout>
   );
