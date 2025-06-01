@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  Users, 
-  GraduationCap, 
-  Heart, 
+import { useAuth } from '@/components/providers/AuthProvider';
+import {
+  Users,
+  GraduationCap,
+  Heart,
   TrendingUp,
   Calendar,
   CreditCard,
@@ -18,25 +19,26 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const [user, setUser] = useState<any>(null);
+  const { user, loading: authLoading } = useAuth();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Check authentication and role
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'ADMIN') {
+    if (!authLoading) {
+      if (!user) {
         router.push('/login');
-      } else {
-        setUser(parsedUser);
+        return;
       }
-    } else {
-      router.push('/login');
+
+      if (user.role !== 'ADMIN') {
+        router.push('/login');
+        return;
+      }
     }
-  }, [router]);
+  }, [user, authLoading, router]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -81,7 +83,7 @@ const AdminDashboard = () => {
     }
   }, [user]);
 
-  if (!user || loading) {
+  if (authLoading || !user || loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-96">
@@ -92,6 +94,11 @@ const AdminDashboard = () => {
         </div>
       </DashboardLayout>
     );
+  }
+
+  // If user is not admin, don't render anything (redirect will happen)
+  if (user.role !== 'ADMIN') {
+    return null;
   }
 
   // Icon mapping

@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { 
-  Users, 
-  GraduationCap, 
-  Calendar, 
+import { useAuth } from '@/components/providers/AuthProvider';
+import {
+  Users,
+  GraduationCap,
+  Calendar,
   BookOpen,
   CheckCircle,
   Clock,
@@ -18,25 +19,40 @@ import {
 } from 'lucide-react';
 
 const MusyrifDashboard = () => {
-  const [user, setUser] = useState<any>(null);
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  // Check authentication and role
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'MUSYRIF') {
+    if (!authLoading) {
+      if (!user) {
         router.push('/login');
-      } else {
-        setUser(parsedUser);
+        return;
       }
-    } else {
-      router.push('/login');
-    }
-  }, [router]);
 
-  if (!user) {
-    return <div>Loading...</div>;
+      if (user.role !== 'MUSYRIF') {
+        router.push('/login');
+        return;
+      }
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || !user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat dashboard...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // If user is not musyrif, don't render anything (redirect will happen)
+  if (user.role !== 'MUSYRIF') {
+    return null;
   }
 
   // Mock data for Musyrif
