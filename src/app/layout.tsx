@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import NotificationProvider from '@/contexts/NotificationContext';
 import NavigationProvider from '@/components/providers/NavigationProvider';
+import AuthProvider from '@/components/providers/AuthProvider';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -52,11 +53,12 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${amiri.variable} min-h-screen bg-gray-50 font-sans antialiased`}
       >
-        <NavigationProvider>
-          <NotificationProvider>
-            <div id="root">
-              {children}
-            </div>
+        <AuthProvider>
+          <NavigationProvider>
+            <NotificationProvider>
+              <div id="root">
+                {children}
+              </div>
           <div id="modal-root" />
           <div id="toast-root" />
           <Toaster
@@ -86,8 +88,9 @@ export default function RootLayout({
               },
             }}
           />
-          </NotificationProvider>
-        </NavigationProvider>
+            </NotificationProvider>
+          </NavigationProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationLink } from '@/components/providers/NavigationProvider';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
+import { useAuth } from '@/components/providers/AuthProvider';
 import {
   BookOpen,
   Users,
@@ -49,19 +50,15 @@ interface NavGroup {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user, logout, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    // Get user from localStorage for demo
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    } else {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   const navigationGroups: NavGroup[] = [
     {
@@ -260,12 +257,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isActive = (href: string) => pathname === href;
 
   const handleSignOut = () => {
-    localStorage.removeItem('user');
+    logout();
     router.push('/');
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-600"></div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>Loading...</div>;
+    return null; // Will redirect to login
   }
 
   return (

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useAuth, getRoleRedirectPath } from '@/components/providers/AuthProvider';
 import { 
   BookOpen, 
   Mail, 
@@ -26,6 +27,7 @@ interface LoginForm {
 
 const LoginPage = () => {
   const router = useRouter();
+  const { login, user, loading } = useAuth();
   const [formData, setFormData] = useState<LoginForm>({
     email: '',
     password: '',
@@ -33,6 +35,14 @@ const LoginPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginForm>>({});
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !loading) {
+      const redirectPath = getRoleRedirectPath(user.role);
+      router.push(redirectPath);
+    }
+  }, [user, loading, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -71,41 +81,17 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock login logic - in real app, this would be an API call
-      if (formData.email === 'admin@rumahtahfidz.com' && formData.password === 'admin123') {
-        // Store mock session in localStorage for demo
-        localStorage.setItem('user', JSON.stringify({
-          id: '1',
-          email: formData.email,
-          name: 'Admin Rumah Tahfidz',
-          role: 'ADMIN'
-        }));
-        router.push('/dashboard/admin');
-      } else if (formData.email === 'musyrif@rumahtahfidz.com' && formData.password === 'musyrif123') {
-        localStorage.setItem('user', JSON.stringify({
-          id: '2',
-          email: formData.email,
-          name: 'Ustadz Ahmad',
-          role: 'MUSYRIF'
-        }));
-        router.push('/dashboard/musyrif');
-      } else if (formData.email === 'wali@rumahtahfidz.com' && formData.password === 'wali123') {
-        localStorage.setItem('user', JSON.stringify({
-          id: '3',
-          email: formData.email,
-          name: 'Bapak Fulan',
-          role: 'WALI'
-        }));
-        router.push('/dashboard/wali');
+      const success = await login(formData.email, formData.password);
+
+      if (success) {
+        // Login successful, AuthProvider will handle user state
+        // Redirect will be handled by useEffect above
       } else {
         setErrors({ email: 'Email atau password salah' });
       }
