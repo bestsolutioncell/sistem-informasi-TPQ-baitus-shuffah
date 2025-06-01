@@ -1,0 +1,765 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  role      String   // ADMIN, MUSYRIF, WALI, SANTRI
+  password  String
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  santriAsWali     Santri[]      @relation("WaliSantri")
+  halaqahAsMusyrif Halaqah[]     @relation("MusyrifHalaqah")
+  hafalanAsMusyrif Hafalan[]     @relation("MusyrifHafalan")
+  attendanceAsMusyrif Attendance[] @relation("MusyrifAttendance")
+  notifications    Notification[]
+  notificationsCreated Notification[] @relation("NotificationCreator")
+  notificationTemplates NotificationTemplate[]
+  auditLogs        AuditLog[]
+  whatsappLogs     WhatsAppLog[] @relation("WhatsAppLogs")
+  whatsappIncoming WhatsAppIncoming[] @relation("WhatsAppIncoming")
+  testimonials     Testimonial[] @relation("Testimonials")
+  transactionsCreated Transaction[] @relation("TransactionCreator")
+  donationsConfirmed Donation[] @relation("DonationConfirmer")
+  reportsGenerated FinancialReport[] @relation("ReportGenerator")
+  whatsappMessages WhatsAppMessage[]
+  emailMessages EmailMessage[]
+  emailTemplates EmailTemplate[]
+  paymentTransactions PaymentTransaction[]
+  cartItems CartItem[]
+  orders Order[]
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+// Santri Management
+model Santri {
+  id             String   @id @default(cuid())
+  nis            String   @unique
+  name           String
+  birthDate      DateTime
+  birthPlace     String
+  gender         String   // MALE, FEMALE
+  address        String
+  phone          String?
+  email          String?
+  photo          String?
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE, GRADUATED, DROPPED_OUT
+  enrollmentDate DateTime @default(now())
+  graduationDate DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  waliId    String
+  wali      User      @relation("WaliSantri", fields: [waliId], references: [id])
+  halaqahId String?
+  halaqah   Halaqah?  @relation("SantriHalaqah", fields: [halaqahId], references: [id])
+
+  hafalan      Hafalan[]
+  attendance   Attendance[]
+  payments     Payment[]
+  testimonials Testimonial[]
+  transactions Transaction[] @relation("SantriTransactions")
+  sppRecords   SPPRecord[]   @relation("SantriSPP")
+
+  @@map("santri")
+}
+
+// Halaqah Management
+model Halaqah {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  capacity        Int      @default(20)
+  level           String   // BEGINNER, INTERMEDIATE, ADVANCED
+  status          String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  musyrifId String
+  musyrif   User   @relation("MusyrifHalaqah", fields: [musyrifId], references: [id])
+
+  santri     Santri[]          @relation("SantriHalaqah")
+  schedules  HalaqahSchedule[]
+  attendance Attendance[]
+
+  @@map("halaqah")
+}
+
+model HalaqahSchedule {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      // 0-6 (Sunday-Saturday)
+  startTime String   // HH:mm format
+  endTime   String   // HH:mm format
+  room      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  halaqahId String
+  halaqah   Halaqah @relation(fields: [halaqahId], references: [id], onDelete: Cascade)
+
+  @@map("halaqah_schedules")
+}
+
+// Hafalan Management
+model Hafalan {
+  id        String   @id @default(cuid())
+  surahId   Int
+  surahName String
+  ayahStart Int
+  ayahEnd   Int
+  type      String   // SETORAN, MURAJAAH, TASMI
+  status    String   @default("PENDING") // PENDING, APPROVED, NEEDS_IMPROVEMENT, REJECTED
+  grade     Int?     // 1-100
+  notes     String?
+  recordedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  santriId  String
+  santri    Santri @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  musyrifId String
+  musyrif   User   @relation("MusyrifHafalan", fields: [musyrifId], references: [id])
+
+  @@map("hafalan")
+}
+
+// Attendance Management
+model Attendance {
+  id           String    @id @default(cuid())
+  date         DateTime
+  status       String    // PRESENT, ABSENT, LATE, EXCUSED
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  notes        String?
+  latitude     Float?
+  longitude    Float?
+  photo        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  santriId  String
+  santri    Santri  @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  halaqahId String
+  halaqah   Halaqah @relation(fields: [halaqahId], references: [id])
+  musyrifId String
+  musyrif   User    @relation("MusyrifAttendance", fields: [musyrifId], references: [id])
+
+  @@unique([santriId, halaqahId, date])
+  @@map("attendance")
+}
+
+// Payment Management
+model Payment {
+  id            String    @id @default(cuid())
+  type          String    // SPP, REGISTRATION, BOOK, UNIFORM, EVENT, OTHER
+  amount        Int       // in cents/rupiah
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        String    @default("PENDING") // PENDING, PAID, OVERDUE, CANCELLED
+  method        String?   // CASH, BANK_TRANSFER, QRIS, E_WALLET, CREDIT_CARD
+  reference     String?   // Midtrans transaction ID
+  notes         String?
+  midtransToken String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  santriId     String
+  santri       Santri        @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("payments")
+}
+
+// SPP Management
+model SPPSetting {
+  id              String   @id @default(cuid())
+  name            String   // SPP Reguler, SPP Tahfidz, SPP Intensif
+  amount          Float    // Monthly SPP amount
+  description     String?
+  isActive        Boolean  @default(true)
+  level           String?  // PEMULA, MENENGAH, LANJUTAN, TAHFIDZ
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sppRecords SPPRecord[]
+
+  @@map("spp_settings")
+}
+
+model SPPRecord {
+  id              String     @id @default(cuid())
+  month           Int        // 1-12
+  year            Int
+  amount          Float
+  dueDate         DateTime
+  paidDate        DateTime?
+  status          String     @default("PENDING") // PENDING, PAID, OVERDUE, PARTIAL
+  paidAmount      Float      @default(0)
+  discount        Float      @default(0)
+  fine            Float      @default(0) // Denda keterlambatan
+  notes           String?
+  paymentMethod   String?    // CASH, BANK_TRANSFER, DIGITAL_WALLET
+  receiptNumber   String?    // Nomor kwitansi
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  santriId        String
+  santri          Santri     @relation("SantriSPP", fields: [santriId], references: [id], onDelete: Cascade)
+  sppSettingId    String
+  sppSetting      SPPSetting @relation(fields: [sppSettingId], references: [id])
+  transactionId   String?    @unique // Link to financial transaction
+  transaction     Transaction? @relation("SPPTransaction", fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([santriId, month, year])
+  @@map("spp_records")
+}
+
+// Old donation model removed - using new financial model
+
+// Old notification model removed - using new notification system
+
+// Audit Log for tracking changes
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // CREATE, UPDATE, DELETE
+  entity    String   // Table name
+  entityId  String   // Record ID
+  oldData   String?  // Previous data as JSON string
+  newData   String?  // New data as JSON string
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// News & Announcements
+model News {
+  id          String    @id @default(cuid())
+  title       String
+  excerpt     String
+  content     String
+  image       String?
+  author      String
+  category    String    // PRESTASI, PENGUMUMAN, KEGIATAN, FASILITAS
+  status      String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  featured    Boolean   @default(false)
+  views       Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("news")
+}
+
+// WhatsApp Integration
+model WhatsAppLog {
+  id          String    @id @default(cuid())
+  recipientId String
+  messageType String
+  messageData String
+  messageId   String
+  status      String    @default("PENDING") // PENDING, SENT, DELIVERED, READ, FAILED
+  sentAt      DateTime  @default(now())
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  recipient User @relation("WhatsAppLogs", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_logs")
+}
+
+model WhatsAppIncoming {
+  id             String    @id @default(cuid())
+  senderId       String
+  senderPhone    String
+  messageType    String
+  messageContent String
+  receivedAt     DateTime
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sender User @relation("WhatsAppIncoming", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_incoming")
+}
+
+// Email Integration
+model EmailLog {
+  id        String   @id @default(cuid())
+  recipient String
+  subject   String
+  status    String   @default("PENDING") // PENDING, SENT, FAILED
+  messageId String
+  template  String   @default("")
+  error     String   @default("")
+  sentAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_logs")
+}
+
+// Program Management
+model Program {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  features    String   // JSON string array
+  duration    String
+  ageGroup    String
+  schedule    String
+  price       String
+  image       String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("programs")
+}
+
+// Testimonial Management
+model Testimonial {
+  id          String   @id @default(cuid())
+  content     String
+  rating      Int      @default(5)
+  isApproved  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  santriId    String?
+  santri      Santri?  @relation(fields: [santriId], references: [id], onDelete: SetNull)
+  waliId      String?
+  wali        User?    @relation("Testimonials", fields: [waliId], references: [id], onDelete: SetNull)
+  authorName  String   // Name to display (could be santri name or wali name)
+  authorRole  String   // WALI, SANTRI, ALUMNI
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+// Financial Management
+model FinancialAccount {
+  id              String            @id @default(cuid())
+  name            String            // Kas Utama, Bank BCA, Bank BSI, etc
+  type            String            // CASH, BANK, DIGITAL_WALLET
+  accountNumber   String?           // Account number for banks
+  balance         Float             @default(0)
+  isActive        Boolean           @default(true)
+  description     String?
+  transactions    Transaction[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("financial_accounts")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  type            String            // INCOME, EXPENSE
+  category        String            // SPP, DONATION, SALARY, UTILITIES, etc
+  amount          Float
+  description     String
+  reference       String?           // Reference number or invoice
+  accountId       String
+  account         FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  santriId        String?           // For SPP payments
+  santri          Santri?           @relation("SantriTransactions", fields: [santriId], references: [id], onDelete: SetNull)
+  donationId      String?           // For donation tracking
+  donation        Donation?         @relation(fields: [donationId], references: [id], onDelete: SetNull)
+  paymentId       String?           // Link to payment record
+  payment         Payment?          @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  sppRecord       SPPRecord?        @relation("SPPTransaction")
+  transactionDate DateTime          @default(now())
+  createdBy       String
+  createdByUser   User              @relation("TransactionCreator", fields: [createdBy], references: [id])
+  attachments     String?           // JSON array of file URLs
+  tags            String?           // JSON array of tags
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("transactions")
+}
+
+model Donation {
+  id              String            @id @default(cuid())
+  donorName       String
+  donorEmail      String?
+  donorPhone      String?
+  amount          Float
+  type            String            // BUILDING, SCHOLARSHIP, EQUIPMENT, GENERAL
+  message         String?
+  isAnonymous     Boolean           @default(false)
+  status          String            @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  paymentMethod   String?           // BANK_TRANSFER, CASH, DIGITAL_WALLET
+  paymentProof    String?           // URL to payment proof
+  confirmedBy     String?
+  confirmedByUser User?             @relation("DonationConfirmer", fields: [confirmedBy], references: [id], onDelete: SetNull)
+  confirmedAt     DateTime?
+  transactions    Transaction[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("donations")
+}
+
+model FinancialReport {
+  id              String            @id @default(cuid())
+  title           String
+  type            String            // MONTHLY, QUARTERLY, YEARLY, CUSTOM
+  periodStart     DateTime
+  periodEnd       DateTime
+  totalIncome     Float
+  totalExpense    Float
+  netIncome       Float
+  reportData      String            // JSON data for detailed report
+  generatedBy     String
+  generatedByUser User              @relation("ReportGenerator", fields: [generatedBy], references: [id])
+  filePath        String?           // Path to generated PDF
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("financial_reports")
+}
+
+model Notification {
+  id          String            @id @default(cuid())
+  title       String
+  message     String
+  type        String            // PAYMENT_REMINDER, PAYMENT_CONFIRMATION, SPP_OVERDUE, etc
+  priority    String            @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status      String            @default("PENDING") // PENDING, SCHEDULED, SENDING, SENT, FAILED, CANCELLED
+  channels    String            // Comma-separated: IN_APP,EMAIL,WHATSAPP,SMS
+  recipientId String?
+  recipientType String?         // USER, SANTRI, WALI, MUSYRIF, ADMIN, ALL_USERS, etc
+  metadata    String?           // JSON string for additional data
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdBy   String
+
+  recipient User? @relation(fields: [recipientId], references: [id])
+  creator   User  @relation("NotificationCreator", fields: [createdBy], references: [id])
+  logs      NotificationLog[]
+
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  title       String
+  message     String
+  type        String   // PAYMENT_REMINDER, PAYMENT_CONFIRMATION, SPP_OVERDUE, etc
+  channels    String   // Comma-separated: IN_APP,EMAIL,WHATSAPP,SMS
+  variables   String?  // JSON string for template variables like {santriName}, {amount}
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("notification_templates")
+}
+
+model NotificationLog {
+  id             String              @id @default(cuid())
+  notificationId String
+  channel        String              // IN_APP, EMAIL, WHATSAPP, SMS
+  recipient      String              // Phone number, email, or user ID
+  status         String              // PENDING, SENT, DELIVERED, READ, FAILED, BOUNCED
+  response       String?             // JSON string for API response from WhatsApp/Email service
+  attemptCount   Int                 @default(1)
+  lastAttemptAt  DateTime            @default(now())
+  deliveredAt    DateTime?
+  errorMessage   String?
+  createdAt      DateTime            @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@map("notification_logs")
+}
+
+model WhatsAppMessage {
+  id                String    @id @default(cuid())
+  recipient         String    // Phone number
+  messageType       String    // TEXT, TEMPLATE, INTERACTIVE, DOCUMENT, IMAGE
+  content           String    // Message content or template name
+  status            String    // PENDING, SENT, DELIVERED, READ, FAILED
+  whatsappMessageId String?   // WhatsApp API message ID
+  templateName      String?   // Template name if using template
+  parameters        String?   // JSON string for template parameters
+  errorMessage      String?   // Error message if failed
+  context           String?   // Additional context (JSON)
+  sentAt            DateTime? // When message was sent
+  deliveredAt       DateTime? // When message was delivered
+  readAt            DateTime? // When message was read
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String?   // Link to user if applicable
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("whatsapp_messages")
+}
+
+model EmailMessage {
+  id          String    @id @default(cuid())
+  recipient   String    // Email address
+  subject     String    // Email subject
+  content     String    // Email content (HTML or text)
+  status      String    // PENDING, SENDING, SENT, DELIVERED, FAILED, BOUNCED, REJECTED
+  messageId   String?   // Email service message ID
+  priority    String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  errorMessage String?  // Error message if failed
+  context     String?   // Additional context (JSON)
+  sentAt      DateTime? // When email was sent
+  deliveredAt DateTime? // When email was delivered
+  bouncedAt   DateTime? // When email bounced
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String?   // Link to user if applicable
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("email_messages")
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique // Template identifier
+  subject     String   // Email subject template
+  html        String   // HTML content template
+  text        String?  // Plain text content template
+  variables   String?  // Available variables (JSON)
+  description String?  // Template description
+  category    String?  // Template category
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // User who created the template
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("email_templates")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  category    String   // whatsapp, email, general, etc.
+  key         String   // access_token, host, etc.
+  value       String   // The actual setting value
+  description String?  // Human readable description
+  isEncrypted Boolean  @default(false) // Whether value is encrypted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, key], name: "category_key")
+  @@map("system_settings")
+}
+
+model PaymentTransaction {
+  id              String    @id @default(cuid())
+  paymentId       String    @unique // Gateway payment ID
+  orderId         String    @unique // Our internal order ID
+  gateway         String    // MIDTRANS, XENDIT, etc.
+  amount          Float     // Payment amount
+  currency        String    @default("IDR")
+  status          String    // PENDING, SUCCESS, FAILED, etc.
+  customerId      String    // User ID who made payment
+  items           String    // JSON array of payment items
+  metadata        String?   // Additional metadata (JSON)
+  gatewayResponse String?   // Full gateway response (JSON)
+  paidAt          DateTime? // When payment was completed
+  expiresAt       DateTime? // Payment expiry time
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  customer User @relation(fields: [customerId], references: [id])
+
+  @@map("payment_transactions")
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  cartId      String   // Session or user cart ID
+  userId      String?  // User ID if logged in
+  itemType    String   // SPP, DONATION, PRODUCT, etc.
+  itemId      String   // Reference to actual item
+  name        String   // Item name
+  description String?  // Item description
+  price       Float    // Item price
+  quantity    Int      @default(1)
+  metadata    String?  // Additional item data (JSON)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("cart_items")
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  name        String   // Credit Card, Bank Transfer, E-Wallet, etc.
+  code        String   @unique // CC, BT, EWALLET, etc.
+  gateway     String   // MIDTRANS, XENDIT, etc.
+  isActive    Boolean  @default(true)
+  icon        String?  // Payment method icon URL
+  description String?  // Payment method description
+  config      String?  // Gateway-specific config (JSON)
+  fees        Float?   // Additional fees
+  minAmount   Float?   // Minimum transaction amount
+  maxAmount   Float?   // Maximum transaction amount
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("payment_methods")
+}
+
+model Order {
+  id              String    @id // Custom order ID
+  customerId      String?   // User ID if logged in
+  customerName    String    // Customer name
+  customerEmail   String    // Customer email
+  customerPhone   String?   // Customer phone
+  items           String    // JSON array of order items
+  subtotal        Float     // Subtotal amount
+  tax             Float     @default(0) // Tax amount
+  discount        Float     @default(0) // Discount amount
+  total           Float     // Total amount
+  status          String    @default("PENDING") // PENDING, PAID, FAILED, CANCELLED
+  paymentId       String?   // Payment gateway transaction ID
+  paymentGateway  String?   // MIDTRANS, XENDIT, etc.
+  paymentMethod   String?   // Credit Card, Bank Transfer, etc.
+  paidAt          DateTime? // When payment was completed
+  metadata        String?   // Additional order data (JSON)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  customer User? @relation(fields: [customerId], references: [id])
+
+  @@map("orders")
+}
+
+model Subscription {
+  id              String    @id @default(cuid())
+  studentId       String    // Student who has the subscription
+  planType        String    // MONTHLY_SPP, QUARTERLY_SPP, YEARLY_SPP
+  amount          Float     // Subscription amount
+  currency        String    @default("IDR")
+  status          String    @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED, EXPIRED
+  startDate       DateTime  // When subscription starts
+  endDate         DateTime? // When subscription ends (null for indefinite)
+  nextBillingDate DateTime  // Next billing date
+  billingCycle    String    @default("MONTHLY") // MONTHLY, QUARTERLY, YEARLY
+  paymentMethod   String?   // Preferred payment method
+  gateway         String?   // Payment gateway for auto-billing
+  gatewaySubscriptionId String? // Gateway subscription ID
+  autoRenewal     Boolean   @default(true) // Auto-renewal enabled
+  trialEndDate    DateTime? // Trial period end date
+  metadata        String?   // Additional subscription data (JSON)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String?   // Who created the subscription
+
+  student User @relation(fields: [studentId], references: [id])
+  billings SubscriptionBilling[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionBilling {
+  id              String    @id @default(cuid())
+  subscriptionId  String    // Reference to subscription
+  billingDate     DateTime  // When this billing was due
+  amount          Float     // Billing amount
+  status          String    @default("PENDING") // PENDING, PAID, FAILED, CANCELLED
+  paymentId       String?   // Payment transaction ID
+  orderId         String?   // Order ID if payment was made
+  dueDate         DateTime  // Payment due date
+  paidAt          DateTime? // When payment was completed
+  failureReason   String?   // Reason for payment failure
+  retryCount      Int       @default(0) // Number of retry attempts
+  nextRetryDate   DateTime? // Next retry date for failed payments
+  metadata        String?   // Additional billing data (JSON)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@map("subscription_billings")
+}
+
+model SubscriptionPlan {
+  id              String    @id @default(cuid())
+  name            String    // Plan name (e.g., "SPP Bulanan", "SPP Tahunan")
+  description     String?   // Plan description
+  amount          Float     // Plan amount
+  currency        String    @default("IDR")
+  billingCycle    String    // MONTHLY, QUARTERLY, YEARLY
+  trialDays       Int       @default(0) // Trial period in days
+  features        String?   // Plan features (JSON array)
+  isActive        Boolean   @default(true) // Plan availability
+  sortOrder       Int       @default(0) // Display order
+  metadata        String?   // Additional plan data (JSON)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("subscription_plans")
+}
+
+// Notification Types (as string constants):
+// PAYMENT_REMINDER, PAYMENT_CONFIRMATION, SPP_OVERDUE, ATTENDANCE_ALERT,
+// HAFALAN_PROGRESS, SYSTEM_ANNOUNCEMENT, ACCOUNT_UPDATE, REPORT_READY,
+// MAINTENANCE_NOTICE, EMERGENCY_ALERT
+
+// Notification Priorities (as string constants):
+// LOW, NORMAL, HIGH, URGENT
+
+// Notification Status (as string constants):
+// PENDING, SCHEDULED, SENDING, SENT, FAILED, CANCELLED
+
+// Notification Channels (as string constants):
+// IN_APP, EMAIL, WHATSAPP, SMS
+
+// Recipient Types (as string constants):
+// USER, SANTRI, WALI, MUSYRIF, ADMIN, ALL_USERS, ALL_WALI, ALL_MUSYRIF
+
+// Delivery Status (as string constants):
+// PENDING, SENT, DELIVERED, READ, FAILED, BOUNCED
