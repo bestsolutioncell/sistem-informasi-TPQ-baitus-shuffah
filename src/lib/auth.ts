@@ -1,12 +1,12 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from './prisma';
+// import { PrismaAdapter } from '@next-auth/prisma-adapter';
+// import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
-import { UserRole } from '@prisma/client';
+// import { UserRole } from '@prisma/client';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -19,20 +19,43 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
+        // Mock user data for testing
+        const mockUsers = [
+          {
+            id: '1',
+            email: 'admin@rumahtahfidz.com',
+            password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            name: 'Administrator',
+            role: 'ADMIN',
+            avatar: null
+          },
+          {
+            id: '2',
+            email: 'musyrif@rumahtahfidz.com',
+            password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            name: 'Ustadz Abdullah',
+            role: 'MUSYRIF',
+            avatar: null
+          },
+          {
+            id: '3',
+            email: 'wali@rumahtahfidz.com',
+            password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            name: 'Bapak Ahmad',
+            role: 'WALI',
+            avatar: null
           }
-        });
+        ];
+
+        const user = mockUsers.find(u => u.email === credentials.email);
 
         if (!user) {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        // For demo purposes, accept 'password' as password
+        const isPasswordValid = credentials.password === 'password' ||
+          await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
           return null;
