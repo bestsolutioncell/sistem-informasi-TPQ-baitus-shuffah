@@ -6,11 +6,12 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useAuth } from '@/components/providers/AuthProvider';
 import QRCodeGenerator from '@/components/qr/QRCodeGenerator';
 import QRScanner from '@/components/qr/QRScanner';
-import { 
-  Calendar, 
-  Search, 
+import {
+  Calendar,
+  Search,
   Filter,
   Download,
   Plus,
@@ -54,7 +55,7 @@ interface AttendanceSession {
 }
 
 const AttendancePage = () => {
-  const [user, setUser] = useState<any>(null);
+  const { user, loading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('TODAY');
@@ -62,22 +63,37 @@ const AttendancePage = () => {
   const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null);
   const router = useRouter();
 
+  // Check authentication and role
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'ADMIN') {
+    if (!authLoading) {
+      if (!user) {
         router.push('/login');
-      } else {
-        setUser(parsedUser);
+        return;
       }
-    } else {
-      router.push('/login');
-    }
-  }, [router]);
 
-  if (!user) {
-    return <div>Loading...</div>;
+      if (user.role !== 'ADMIN') {
+        router.push('/login');
+        return;
+      }
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || !user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat sistem absensi...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // If user is not admin, don't render anything (redirect will happen)
+  if (user.role !== 'ADMIN') {
+    return null;
   }
 
   // Mock data
