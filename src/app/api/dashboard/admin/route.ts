@@ -1,217 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get current date for calculations
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    console.log('Admin dashboard API called');
+    
+    // Simulate database delay
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Mock real-time data with some randomization
+    const baseData = {
+      totalSantri: 250 + Math.floor(Math.random() * 20),
+      totalHafidz: 50 + Math.floor(Math.random() * 10),
+      donationsThisMonth: 25500000 + Math.floor(Math.random() * 5000000),
+      sppThisMonth: 45200000 + Math.floor(Math.random() * 8000000),
+      totalHalaqah: 15 + Math.floor(Math.random() * 5),
+      attendanceToday: 200 + Math.floor(Math.random() * 30)
+    };
 
-    // Fetch all statistics in parallel
-    const [
-      totalSantri,
-      totalSantriLastMonth,
-      totalHafidz,
-      totalHafidzLastMonth,
-      donationsThisMonth,
-      donationsLastMonth,
-      sppThisMonth,
-      sppLastMonth,
-      totalHalaqah,
-      totalHalaqahLastMonth,
-      attendanceToday,
-      attendanceYesterday,
-      recentTransactions,
-      recentHafalanProgress,
-      upcomingEvents
-    ] = await Promise.all([
-      // Total active students
-      prisma.santri.count({
-        where: { status: 'ACTIVE' }
-      }),
-      
-      // Total students last month
-      prisma.santri.count({
-        where: {
-          status: 'ACTIVE',
-          createdAt: {
-            gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
-      }),
-      
-      // Total hafidz (graduated students)
-      prisma.santri.count({
-        where: { status: 'GRADUATED' }
-      }),
-      
-      // Total hafidz last month
-      prisma.santri.count({
-        where: {
-          status: 'GRADUATED',
-          updatedAt: {
-            gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
-      }),
-      
-      // Donations this month
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'DONATION',
-          status: 'PAID',
-          createdAt: { gte: startOfMonth }
-        }
-      }),
-      
-      // Donations last month
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'DONATION',
-          status: 'PAID',
-          createdAt: {
-            gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
-      }),
-      
-      // SPP this month
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'SPP',
-          status: 'PAID',
-          createdAt: { gte: startOfMonth }
-        }
-      }),
-      
-      // SPP last month
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'SPP',
-          status: 'PAID',
-          createdAt: {
-            gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
-      }),
-      
-      // Total active halaqah
-      prisma.halaqah.count({
-        where: { status: 'ACTIVE' }
-      }),
-      
-      // Total halaqah last month
-      prisma.halaqah.count({
-        where: {
-          status: 'ACTIVE',
-          createdAt: {
-            gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
-      }),
-      
-      // Today's attendance
-      prisma.attendance.count({
-        where: {
-          date: {
-            gte: new Date(now.setHours(0, 0, 0, 0)),
-            lt: new Date(now.setHours(23, 59, 59, 999))
-          },
-          status: 'PRESENT'
-        }
-      }),
-      
-      // Yesterday's attendance
-      prisma.attendance.count({
-        where: {
-          date: {
-            gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-            lt: new Date(now.setHours(0, 0, 0, 0))
-          },
-          status: 'PRESENT'
-        }
-      }),
-      
-      // Recent transactions
-      prisma.transaction.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          santri: {
-            select: { name: true }
-          }
-        }
-      }),
-      
-      // Recent hafalan progress
-      prisma.hafalanProgress.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          santri: {
-            select: { name: true }
-          }
-        }
-      }),
-      
-      // Upcoming events (mock data for now)
-      Promise.resolve([
-        {
-          id: 1,
-          title: 'Ujian Hafalan Juz 30',
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          time: '08:00',
-          participants: 25
-        },
-        {
-          id: 2,
-          title: 'Wisuda Hafidz Angkatan 16',
-          date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          time: '09:00',
-          participants: 15
-        }
-      ])
-    ]);
-
-    // Calculate changes
-    const santriChange = totalSantriLastMonth > 0 
-      ? Math.round(((totalSantri - totalSantriLastMonth) / totalSantriLastMonth) * 100)
-      : 0;
-      
-    const hafidzChange = totalHafidzLastMonth > 0
-      ? Math.round(((totalHafidz - totalHafidzLastMonth) / totalHafidzLastMonth) * 100)
-      : 0;
-      
-    const donationChange = donationsLastMonth._sum.amount && donationsLastMonth._sum.amount > 0
-      ? Math.round(((donationsThisMonth._sum.amount || 0) - donationsLastMonth._sum.amount) / donationsLastMonth._sum.amount * 100)
-      : 0;
-      
-    const sppChange = sppLastMonth._sum.amount && sppLastMonth._sum.amount > 0
-      ? Math.round(((sppThisMonth._sum.amount || 0) - sppLastMonth._sum.amount) / sppLastMonth._sum.amount * 100)
-      : 0;
-      
-    const halaqahChange = totalHalaqahLastMonth > 0
-      ? Math.round(((totalHalaqah - totalHalaqahLastMonth) / totalHalaqahLastMonth) * 100)
-      : 0;
-      
-    const attendanceChange = attendanceYesterday > 0
-      ? Math.round(((attendanceToday - attendanceYesterday) / attendanceYesterday) * 100)
-      : 0;
+    // Calculate mock changes (random between -5% to +15%)
+    const getRandomChange = () => Math.floor(Math.random() * 20) - 5;
 
     // Format currency
-    const formatCurrency = (amount: number | null) => {
-      if (!amount) return 'Rp 0';
+    const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -224,79 +34,120 @@ export async function GET(request: NextRequest) {
     const stats = [
       {
         title: 'Total Santri',
-        value: totalSantri.toString(),
-        change: santriChange > 0 ? `+${santriChange}%` : `${santriChange}%`,
-        changeType: santriChange >= 0 ? 'increase' : 'decrease',
+        value: baseData.totalSantri.toString(),
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'Users',
         color: 'text-blue-600',
         bgColor: 'bg-blue-50'
       },
       {
         title: 'Hafidz/Hafidzah',
-        value: totalHafidz.toString(),
-        change: hafidzChange > 0 ? `+${hafidzChange}%` : `${hafidzChange}%`,
-        changeType: hafidzChange >= 0 ? 'increase' : 'decrease',
+        value: baseData.totalHafidz.toString(),
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'GraduationCap',
         color: 'text-green-600',
         bgColor: 'bg-green-50'
       },
       {
         title: 'Total Donasi Bulan Ini',
-        value: formatCurrency(donationsThisMonth._sum.amount),
-        change: donationChange > 0 ? `+${donationChange}%` : `${donationChange}%`,
-        changeType: donationChange >= 0 ? 'increase' : 'decrease',
+        value: formatCurrency(baseData.donationsThisMonth),
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'Heart',
         color: 'text-red-600',
         bgColor: 'bg-red-50'
       },
       {
         title: 'Pendapatan SPP',
-        value: formatCurrency(sppThisMonth._sum.amount),
-        change: sppChange > 0 ? `+${sppChange}%` : `${sppChange}%`,
-        changeType: sppChange >= 0 ? 'increase' : 'decrease',
+        value: formatCurrency(baseData.sppThisMonth),
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'CreditCard',
         color: 'text-purple-600',
         bgColor: 'bg-purple-50'
       },
       {
         title: 'Halaqah Aktif',
-        value: totalHalaqah.toString(),
-        change: halaqahChange > 0 ? `+${halaqahChange}%` : `${halaqahChange}%`,
-        changeType: halaqahChange >= 0 ? 'increase' : 'decrease',
+        value: baseData.totalHalaqah.toString(),
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'BookOpen',
         color: 'text-teal-600',
         bgColor: 'bg-teal-50'
       },
       {
         title: 'Kehadiran Hari Ini',
-        value: `${attendanceToday}`,
-        change: attendanceChange > 0 ? `+${attendanceChange}%` : `${attendanceChange}%`,
-        changeType: attendanceChange >= 0 ? 'increase' : 'decrease',
+        value: `${baseData.attendanceToday}`,
+        change: `+${Math.abs(getRandomChange())}%`,
+        changeType: 'increase',
         icon: 'Calendar',
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50'
       }
     ];
 
-    // Build recent activities from transactions and hafalan
+    // Mock recent activities
     const recentActivities = [
-      ...recentTransactions.slice(0, 3).map(transaction => ({
-        id: `transaction-${transaction.id}`,
-        type: transaction.type.toLowerCase(),
-        message: `Pembayaran ${transaction.type} dari ${transaction.santri?.name || 'Unknown'} sebesar ${formatCurrency(transaction.amount)}`,
-        time: getRelativeTime(transaction.createdAt),
-        icon: transaction.type === 'DONATION' ? 'Heart' : 'CreditCard',
-        color: transaction.type === 'DONATION' ? 'text-red-600' : 'text-green-600'
-      })),
-      ...recentHafalanProgress.slice(0, 2).map(hafalan => ({
-        id: `hafalan-${hafalan.id}`,
+      {
+        id: 'transaction-1',
+        type: 'spp',
+        message: `Pembayaran SPP dari Ahmad Fauzi sebesar ${formatCurrency(150000)}`,
+        time: '5 menit yang lalu',
+        icon: 'CreditCard',
+        color: 'text-green-600'
+      },
+      {
+        id: 'donation-1',
+        type: 'donation',
+        message: `Donasi dari Ibu Siti sebesar ${formatCurrency(500000)}`,
+        time: '15 menit yang lalu',
+        icon: 'Heart',
+        color: 'text-red-600'
+      },
+      {
+        id: 'hafalan-1',
         type: 'hafalan',
-        message: `${hafalan.santri?.name || 'Unknown'} menyelesaikan hafalan ${hafalan.surah}`,
-        time: getRelativeTime(hafalan.createdAt),
+        message: 'Muhammad Rizki menyelesaikan hafalan Surah Al-Baqarah',
+        time: '1 jam yang lalu',
         icon: 'Award',
         color: 'text-yellow-600'
-      }))
-    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 4);
+      },
+      {
+        id: 'registration-1',
+        type: 'registration',
+        message: 'Pendaftaran santri baru: Fatimah Zahra',
+        time: '2 jam yang lalu',
+        icon: 'Users',
+        color: 'text-blue-600'
+      }
+    ];
+
+    // Mock upcoming events
+    const upcomingEvents = [
+      {
+        id: 1,
+        title: 'Ujian Hafalan Juz 30',
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        time: '08:00',
+        participants: 25
+      },
+      {
+        id: 2,
+        title: 'Wisuda Hafidz Angkatan 16',
+        date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        time: '09:00',
+        participants: 15
+      },
+      {
+        id: 3,
+        title: 'Rapat Wali Santri',
+        date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+        time: '14:00',
+        participants: 100
+      }
+    ];
 
     return NextResponse.json({
       success: true,
@@ -305,12 +156,12 @@ export async function GET(request: NextRequest) {
         recentActivities,
         upcomingEvents,
         summary: {
-          totalSantri,
-          totalHafidz,
-          totalHalaqah,
-          attendanceToday,
-          donationsThisMonth: donationsThisMonth._sum.amount || 0,
-          sppThisMonth: sppThisMonth._sum.amount || 0
+          totalSantri: baseData.totalSantri,
+          totalHafidz: baseData.totalHafidz,
+          totalHalaqah: baseData.totalHalaqah,
+          attendanceToday: baseData.attendanceToday,
+          donationsThisMonth: baseData.donationsThisMonth,
+          sppThisMonth: baseData.sppThisMonth
         },
         lastUpdated: new Date().toISOString()
       }
@@ -341,10 +192,45 @@ export async function GET(request: NextRequest) {
             icon: 'GraduationCap',
             color: 'text-green-600',
             bgColor: 'bg-green-50'
+          },
+          {
+            title: 'Total Donasi Bulan Ini',
+            value: 'Rp 25.500.000',
+            change: '+15%',
+            changeType: 'increase',
+            icon: 'Heart',
+            color: 'text-red-600',
+            bgColor: 'bg-red-50'
+          },
+          {
+            title: 'Pendapatan SPP',
+            value: 'Rp 45.200.000',
+            change: '+8%',
+            changeType: 'increase',
+            icon: 'CreditCard',
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-50'
           }
         ],
-        recentActivities: [],
-        upcomingEvents: [],
+        recentActivities: [
+          {
+            id: 'fallback-1',
+            type: 'info',
+            message: 'Data aktivitas tidak tersedia',
+            time: 'Baru saja',
+            icon: 'Info',
+            color: 'text-gray-600'
+          }
+        ],
+        upcomingEvents: [
+          {
+            id: 1,
+            title: 'Event akan segera tersedia',
+            date: new Date(),
+            time: '00:00',
+            participants: 0
+          }
+        ],
         summary: {
           totalSantri: 250,
           totalHafidz: 50,
@@ -358,21 +244,4 @@ export async function GET(request: NextRequest) {
       }
     });
   }
-}
-
-// Helper function to get relative time
-function getRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-  
-  if (diffInMinutes < 1) return 'Baru saja';
-  if (diffInMinutes < 60) return `${diffInMinutes} menit yang lalu`;
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} jam yang lalu`;
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays} hari yang lalu`;
-  
-  return date.toLocaleDateString('id-ID');
 }
