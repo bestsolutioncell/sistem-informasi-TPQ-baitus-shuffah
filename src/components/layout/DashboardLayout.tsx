@@ -32,8 +32,7 @@ import {
   DollarSign,
   TrendingUp,
   Target,
-  Award,
-  UserCheck
+  Award
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
