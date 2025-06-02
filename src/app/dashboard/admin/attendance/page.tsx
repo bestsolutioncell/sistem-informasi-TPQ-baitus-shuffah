@@ -1,14 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import { useAuth } from '@/components/providers/AuthProvider';
-import AddAttendanceModal from '@/components/modals/AddAttendanceModal';
-import AttendanceDetailModal from '@/components/modals/AttendanceDetailModal';
 import {
   Calendar,
   Search,
@@ -24,87 +18,154 @@ import {
   UserCheck,
   UserX,
   Edit,
-  TrendingUp
+  TrendingUp,
+  QrCode,
+  MapPin,
+  Bell,
+  BarChart3,
+  Timer,
+  RefreshCw
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import {
+  AttendanceRecord,
+  AttendanceSummary,
+  AttendanceStats,
+  AttendanceStatus,
+  SessionType,
+  getAttendanceStatusColor,
+  getAttendanceStatusText,
+  getSessionTypeText,
+  getSessionTypeColor,
+  calculateAttendanceRate,
+  calculatePunctualityRate,
+  formatTime,
+  formatDuration
+} from '@/lib/attendance-data';
 
-interface AttendanceRecord {
-  id: string;
-  santriId: string;
-  santriName: string;
-  santriNis: string;
-  halaqahId: string;
-  halaqahName: string;
-  date: string;
-  checkIn: string;
-  checkOut?: string;
-  status: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
-  notes?: string;
-  scannedBy: string;
-}
+// Using AttendanceRecord interface from attendance-data.ts
 
-interface AttendanceSession {
-  id: string;
-  halaqahId: string;
-  halaqahName: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  qrCode: string;
-  isActive: boolean;
-  totalSantri: number;
-  presentCount: number;
-}
-
-const AttendancePage = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [dateFilter, setDateFilter] = useState('TODAY');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [editingAttendance, setEditingAttendance] = useState<any>(null);
-  const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
-  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+export default function AttendancePage() {
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [halaqahFilter, setHalaqahFilter] = useState('all');
+  const [sessionFilter, setSessionFilter] = useState('all');
 
-  // Check authentication and role
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-        return;
+  // Mock data
+  const mockAttendanceRecords: AttendanceRecord[] = [
+    {
+      id: 'att_1',
+      santriId: 'santri_1',
+      santriName: 'Ahmad Fauzi',
+      santriNis: 'TPQ001',
+      halaqahId: 'halaqah_1',
+      halaqahName: 'Halaqah Al-Fatihah',
+      musyrifId: 'musyrif_1',
+      musyrifName: 'Ustadz Ahmad',
+      date: selectedDate,
+      sessionType: 'MORNING',
+      status: 'PRESENT',
+      checkInTime: '07:30:00',
+      checkOutTime: '09:00:00',
+      method: 'QR_CODE',
+      recordedBy: 'system',
+      recordedAt: `${selectedDate}T07:30:00Z`,
+      metadata: {
+        qrCodeId: 'qr_morning_001',
+        deviceId: 'tablet_001'
       }
-
-      if (user.role !== 'ADMIN') {
-        router.push('/login');
-        return;
+    },
+    {
+      id: 'att_2',
+      santriId: 'santri_2',
+      santriName: 'Siti Aisyah',
+      santriNis: 'TPQ002',
+      halaqahId: 'halaqah_1',
+      halaqahName: 'Halaqah Al-Fatihah',
+      musyrifId: 'musyrif_1',
+      musyrifName: 'Ustadz Ahmad',
+      date: selectedDate,
+      sessionType: 'MORNING',
+      status: 'LATE',
+      checkInTime: '07:45:00',
+      checkOutTime: '09:00:00',
+      lateMinutes: 15,
+      method: 'MANUAL',
+      notes: 'Terlambat karena macet',
+      recordedBy: 'musyrif_1',
+      recordedAt: `${selectedDate}T07:45:00Z`
+    },
+    {
+      id: 'att_3',
+      santriId: 'santri_3',
+      santriName: 'Muhammad Rizki',
+      santriNis: 'TPQ003',
+      halaqahId: 'halaqah_2',
+      halaqahName: 'Halaqah Al-Baqarah',
+      musyrifId: 'musyrif_2',
+      musyrifName: 'Ustadzah Fatimah',
+      date: selectedDate,
+      sessionType: 'MORNING',
+      status: 'ABSENT',
+      method: 'MANUAL',
+      notes: 'Tidak hadir tanpa keterangan',
+      recordedBy: 'musyrif_2',
+      recordedAt: `${selectedDate}T08:00:00Z`
+    },
+    {
+      id: 'att_4',
+      santriId: 'santri_4',
+      santriName: 'Fatimah Zahra',
+      santriNis: 'TPQ004',
+      halaqahId: 'halaqah_1',
+      halaqahName: 'Halaqah Al-Fatihah',
+      musyrifId: 'musyrif_1',
+      musyrifName: 'Ustadz Ahmad',
+      date: selectedDate,
+      sessionType: 'MORNING',
+      status: 'SICK',
+      excuseReason: 'Demam tinggi',
+      excuseDocument: '/documents/surat_sakit_004.pdf',
+      method: 'MANUAL',
+      recordedBy: 'admin_1',
+      recordedAt: `${selectedDate}T07:00:00Z`
+    },
+    {
+      id: 'att_5',
+      santriId: 'santri_5',
+      santriName: 'Abdullah Rahman',
+      santriNis: 'TPQ005',
+      halaqahId: 'halaqah_2',
+      halaqahName: 'Halaqah Al-Baqarah',
+      musyrifId: 'musyrif_2',
+      musyrifName: 'Ustadzah Fatimah',
+      date: selectedDate,
+      sessionType: 'MORNING',
+      status: 'PRESENT',
+      checkInTime: '07:25:00',
+      checkOutTime: '09:00:00',
+      method: 'QR_CODE',
+      recordedBy: 'system',
+      recordedAt: `${selectedDate}T07:25:00Z`,
+      metadata: {
+        qrCodeId: 'qr_morning_002',
+        deviceId: 'tablet_002'
       }
     }
-  }, [user, authLoading, router]);
+  ];
 
-  if (authLoading || !user) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat sistem absensi...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // If user is not admin, don't render anything (redirect will happen)
-  if (user.role !== 'ADMIN') {
-    return null;
-  }
-
-  // Load attendance data
   useEffect(() => {
     loadAttendanceData();
-  }, []);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    filterRecords();
+  }, [attendanceRecords, searchTerm, statusFilter, halaqahFilter, sessionFilter]);
 
   const loadAttendanceData = async () => {
     try {

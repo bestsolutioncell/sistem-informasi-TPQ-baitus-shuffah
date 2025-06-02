@@ -32,7 +32,8 @@ import {
   DollarSign,
   TrendingUp,
   Target,
-  Award
+  Award,
+  UserCheck
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -119,6 +120,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: `/dashboard/${user?.role?.toLowerCase()}/attendance`,
           icon: Calendar,
           roles: ['ADMIN', 'MUSYRIF', 'WALI']
+        },
+        {
+          name: 'Advanced Attendance',
+          href: `/dashboard/${user?.role?.toLowerCase()}/attendance/advanced`,
+          icon: UserCheck,
+          roles: ['ADMIN', 'MUSYRIF']
         }
       ]
     },
