@@ -250,13 +250,59 @@ export interface HafalanProgress {
 export interface HafalanTarget {
   id: string;
   santriId: string;
+  santriName: string;
   surahId: number;
+  surahName: string;
+  targetType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM';
   targetAyahs: number;
+  completedAyahs: number;
   targetDate: string;
+  startDate: string;
   createdBy: string;
+  createdByName: string;
   createdAt: string;
-  status: 'ACTIVE' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED';
+  updatedAt: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED' | 'PAUSED';
   progress: number; // 0-100
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  description?: string;
+  notes?: string;
+  reminders: {
+    enabled: boolean;
+    frequency: 'DAILY' | 'WEEKLY' | 'BEFORE_DEADLINE';
+    lastSent?: string;
+  };
+  milestones: {
+    percentage: number;
+    achievedAt?: string;
+    reward?: string;
+  }[];
+}
+
+// Target Template
+export interface TargetTemplate {
+  id: string;
+  name: string;
+  description: string;
+  targetType: HafalanTarget['targetType'];
+  surahIds: number[];
+  duration: number; // in days
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  recommendedAge: string;
+  estimatedHours: number;
+  isActive: boolean;
+}
+
+// Target Achievement
+export interface TargetAchievement {
+  id: string;
+  targetId: string;
+  santriId: string;
+  achievementType: 'MILESTONE' | 'COMPLETION' | 'EARLY_COMPLETION' | 'PERFECT_SCORE';
+  achievedAt: string;
+  description: string;
+  reward?: string;
+  certificateUrl?: string;
 }
 
 // Helper Functions
@@ -352,3 +398,139 @@ export const getStatusColor = (status: HafalanStatus): string => {
     default: return 'text-gray-600 bg-gray-50';
   }
 };
+
+// Target Helper Functions
+export const getTargetStatusColor = (status: HafalanTarget['status']): string => {
+  switch (status) {
+    case 'ACTIVE': return 'text-blue-600 bg-blue-50';
+    case 'COMPLETED': return 'text-green-600 bg-green-50';
+    case 'OVERDUE': return 'text-red-600 bg-red-50';
+    case 'CANCELLED': return 'text-gray-600 bg-gray-50';
+    case 'PAUSED': return 'text-yellow-600 bg-yellow-50';
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
+
+export const getTargetStatusText = (status: HafalanTarget['status']): string => {
+  switch (status) {
+    case 'ACTIVE': return 'Aktif';
+    case 'COMPLETED': return 'Selesai';
+    case 'OVERDUE': return 'Terlambat';
+    case 'CANCELLED': return 'Dibatalkan';
+    case 'PAUSED': return 'Dijeda';
+    default: return status;
+  }
+};
+
+export const getPriorityColor = (priority: HafalanTarget['priority']): string => {
+  switch (priority) {
+    case 'URGENT': return 'text-red-600 bg-red-50';
+    case 'HIGH': return 'text-orange-600 bg-orange-50';
+    case 'MEDIUM': return 'text-yellow-600 bg-yellow-50';
+    case 'LOW': return 'text-green-600 bg-green-50';
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
+
+export const getPriorityText = (priority: HafalanTarget['priority']): string => {
+  switch (priority) {
+    case 'URGENT': return 'Mendesak';
+    case 'HIGH': return 'Tinggi';
+    case 'MEDIUM': return 'Sedang';
+    case 'LOW': return 'Rendah';
+    default: return priority;
+  }
+};
+
+export const calculateTargetProgress = (target: HafalanTarget): number => {
+  if (target.targetAyahs === 0) return 0;
+  return Math.min((target.completedAyahs / target.targetAyahs) * 100, 100);
+};
+
+export const calculateDaysRemaining = (targetDate: string): number => {
+  const today = new Date();
+  const target = new Date(targetDate);
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+export const isTargetOverdue = (target: HafalanTarget): boolean => {
+  const daysRemaining = calculateDaysRemaining(target.targetDate);
+  return daysRemaining < 0 && target.status === 'ACTIVE';
+};
+
+export const getTargetTypeText = (type: HafalanTarget['targetType']): string => {
+  switch (type) {
+    case 'DAILY': return 'Harian';
+    case 'WEEKLY': return 'Mingguan';
+    case 'MONTHLY': return 'Bulanan';
+    case 'YEARLY': return 'Tahunan';
+    case 'CUSTOM': return 'Kustom';
+    default: return type;
+  }
+};
+
+// Target Templates
+export const TARGET_TEMPLATES: TargetTemplate[] = [
+  {
+    id: 'template_juz_amma',
+    name: 'Juz Amma (Surah Pendek)',
+    description: 'Target hafalan surah-surah pendek dalam Juz 30 untuk pemula',
+    targetType: 'MONTHLY',
+    surahIds: [114, 113, 112, 111, 110, 109],
+    duration: 30,
+    difficulty: 'BEGINNER',
+    recommendedAge: '5-8 tahun',
+    estimatedHours: 20,
+    isActive: true
+  },
+  {
+    id: 'template_al_fatihah',
+    name: 'Al-Fatihah',
+    description: 'Target hafalan surah Al-Fatihah untuk pemula',
+    targetType: 'WEEKLY',
+    surahIds: [1],
+    duration: 7,
+    difficulty: 'BEGINNER',
+    recommendedAge: '5-7 tahun',
+    estimatedHours: 5,
+    isActive: true
+  },
+  {
+    id: 'template_al_baqarah',
+    name: 'Al-Baqarah',
+    description: 'Target hafalan surah Al-Baqarah untuk santri advanced',
+    targetType: 'YEARLY',
+    surahIds: [2],
+    duration: 365,
+    difficulty: 'ADVANCED',
+    recommendedAge: '15+ tahun',
+    estimatedHours: 200,
+    isActive: true
+  },
+  {
+    id: 'template_3_qul',
+    name: '3 Qul (Al-Ikhlas, Al-Falaq, An-Nas)',
+    description: 'Target hafalan 3 surah perlindungan',
+    targetType: 'WEEKLY',
+    surahIds: [112, 113, 114],
+    duration: 14,
+    difficulty: 'BEGINNER',
+    recommendedAge: '5-8 tahun',
+    estimatedHours: 8,
+    isActive: true
+  },
+  {
+    id: 'template_monthly_progress',
+    name: 'Progress Bulanan',
+    description: 'Target hafalan bulanan disesuaikan dengan kemampuan santri',
+    targetType: 'MONTHLY',
+    surahIds: [],
+    duration: 30,
+    difficulty: 'INTERMEDIATE',
+    recommendedAge: '8-15 tahun',
+    estimatedHours: 40,
+    isActive: true
+  }
+];

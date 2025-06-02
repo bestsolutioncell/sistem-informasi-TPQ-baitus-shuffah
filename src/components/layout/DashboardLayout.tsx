@@ -30,7 +30,8 @@ import {
   Monitor,
   Database,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  Target
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -99,6 +100,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: `/dashboard/${user?.role?.toLowerCase()}/hafalan/progress`,
           icon: TrendingUp,
           roles: ['ADMIN', 'MUSYRIF', 'WALI']
+        },
+        {
+          name: 'Target Hafalan',
+          href: `/dashboard/${user?.role?.toLowerCase()}/hafalan/targets`,
+          icon: Target,
+          roles: ['ADMIN', 'MUSYRIF']
         },
         {
           name: 'Absensi',
