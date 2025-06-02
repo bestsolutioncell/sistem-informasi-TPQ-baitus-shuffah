@@ -125,6 +125,24 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: `/dashboard/${user?.role?.toLowerCase()}/attendance/advanced`,
           icon: UserCheck,
           roles: ['ADMIN', 'MUSYRIF']
+        },
+        {
+          name: 'Evaluasi Perilaku',
+          href: `/dashboard/${user?.role?.toLowerCase()}/behavior`,
+          icon: Heart,
+          roles: ['ADMIN', 'MUSYRIF']
+        },
+        {
+          name: 'Analytics Perilaku',
+          href: `/dashboard/${user?.role?.toLowerCase()}/behavior/analytics`,
+          icon: BarChart3,
+          roles: ['ADMIN', 'MUSYRIF']
+        },
+        {
+          name: 'Laporan Karakter',
+          href: `/dashboard/${user?.role?.toLowerCase()}/behavior/reports`,
+          icon: FileText,
+          roles: ['ADMIN', 'MUSYRIF']
         }
       ]
     },
