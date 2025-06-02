@@ -21,7 +21,8 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  CreditCard
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -229,6 +230,9 @@ export default function AdminPaymentPage() {
         ? { ...payment, status: 'PAID', updatedAt: new Date().toISOString() }
         : payment
     ));
+
+    // Log payment result for debugging
+    console.log('Payment gateway success:', paymentResult);
 
     toast.success('Pembayaran berhasil diproses!');
     setIsPaymentGatewayOpen(false);
