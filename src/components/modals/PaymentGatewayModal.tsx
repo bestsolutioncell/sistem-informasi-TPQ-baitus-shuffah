@@ -66,15 +66,15 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const [paymentInstructions, setPaymentInstructions] = useState<any>(null);
 
   useEffect(() => {
-    if (isOpen && paymentData.amount > 0) {
+    if (isOpen && paymentData?.amount && paymentData.amount > 0) {
       loadPaymentMethods();
     }
-  }, [isOpen, paymentData.amount]);
+  }, [isOpen, paymentData?.amount]);
 
   const loadPaymentMethods = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/payment/create?amount=${paymentData.amount}`);
+      const response = await fetch(`/api/payment/create?amount=${paymentData?.amount || 0}`);
       const result = await response.json();
 
       if (result.success) {
@@ -111,18 +111,18 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
       setStep('processing');
 
       const paymentRequest = {
-        orderId: paymentData.orderId,
-        amount: paymentData.amount,
-        items: paymentData.items,
+        orderId: paymentData?.orderId || '',
+        amount: paymentData?.amount || 0,
+        items: paymentData?.items || [],
         customer: {
-          firstName: paymentData.customerName.split(' ')[0],
-          lastName: paymentData.customerName.split(' ').slice(1).join(' '),
-          email: paymentData.customerEmail,
-          phone: paymentData.customerPhone
+          firstName: paymentData?.customerName?.split(' ')[0] || '',
+          lastName: paymentData?.customerName?.split(' ').slice(1).join(' ') || '',
+          email: paymentData?.customerEmail || '',
+          phone: paymentData?.customerPhone || ''
         },
         paymentMethod: selectedMethod,
         metadata: {
-          description: paymentData.description,
+          description: paymentData?.description || '',
           source: 'admin_panel'
         }
       };
@@ -153,8 +153,8 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
               toast.success('Pembayaran berhasil!');
               onSuccess({
                 ...result,
-                orderId: paymentData.orderId,
-                amount: paymentData.amount,
+                orderId: paymentData?.orderId || '',
+                amount: paymentData?.amount || 0,
                 paymentMethod: selectedMethod
               });
               onClose();
@@ -242,7 +242,7 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Pilih Metode Pembayaran</h3>
         <p className="text-gray-600">
           Total: <span className="font-bold text-teal-600">
-            Rp {paymentData.amount.toLocaleString('id-ID')}
+            Rp {(paymentData?.amount || 0).toLocaleString('id-ID')}
           </span>
         </p>
       </div>
@@ -362,11 +362,11 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Order ID:</span>
-              <span className="font-mono">{paymentData.orderId}</span>
+              <span className="font-mono">{paymentData?.orderId || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Jumlah:</span>
-              <span className="font-bold">Rp {paymentData.amount.toLocaleString('id-ID')}</span>
+              <span className="font-bold">Rp {(paymentData?.amount || 0).toLocaleString('id-ID')}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Metode:</span>
@@ -387,7 +387,7 @@ const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     </div>
   );
 
-  if (!isOpen) return null;
+  if (!isOpen || !paymentData) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
