@@ -24,7 +24,8 @@ import {
   Clock,
   Mail,
   MessageSquare,
-  Printer
+  Printer,
+  Edit
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
