@@ -64,8 +64,8 @@ Sistem Informasi Manajemen Rumah Tahfidz yang modern dan terintegrasi untuk meng
 
 1. **Clone repository**
 ```bash
-git clone <repository-url>
-cd rumah-tahfidz
+git clone github.com/bestsolutioncell/sistem-informasi-TPQ-baitus-shuffah
+cd sistem-informasi-TPQ-baitus-shuffah
 ```
 
 2. **Install dependencies**
