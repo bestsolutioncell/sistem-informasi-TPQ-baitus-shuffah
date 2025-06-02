@@ -19,12 +19,24 @@ import {
   BookOpen,
   Heart,
   Target,
-  Eye
+  Eye,
+  MessageSquare,
+  Bell,
+  Star,
+  BarChart3,
+  Activity,
+  Send,
+  Phone,
+  Mail,
+  Home,
+  School
 } from 'lucide-react';
 
 const WaliDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedChild, setSelectedChild] = useState('1');
 
   // Check authentication and role
   useEffect(() => {
@@ -137,6 +149,95 @@ const WaliDashboard = () => {
     { date: '2024-02-08', status: 'PRESENT' }
   ];
 
+  // Parent Collaboration Data
+  const behaviorSummary = {
+    totalRecords: 18,
+    positiveCount: 15,
+    negativeCount: 3,
+    behaviorScore: 85,
+    characterGrade: 'B+',
+    strengths: [
+      'Sangat jujur dalam berkata dan bertindak',
+      'Rajin melaksanakan shalat berjamaah',
+      'Aktif membantu teman yang kesulitan'
+    ],
+    areasForImprovement: [
+      'Perlu meningkatkan kedisiplinan waktu',
+      'Lebih aktif dalam bertanya saat pembelajaran'
+    ]
+  };
+
+  const activeGoals = [
+    {
+      id: 'goal_1',
+      title: 'Mengembangkan Kepemimpinan',
+      description: 'Program pengembangan jiwa kepemimpinan dan tanggung jawab',
+      category: 'LEADERSHIP',
+      progress: 65,
+      targetDate: '2024-04-30',
+      milestones: 3,
+      completedMilestones: 2
+    }
+  ];
+
+  const recentActivities = [
+    {
+      id: 'activity_1',
+      type: 'BEHAVIOR_POSITIVE',
+      title: 'Perilaku Positif',
+      description: 'Ahmad membantu teman yang kesulitan membaca Al-Quran',
+      date: '2024-02-12',
+      time: '09:15:00',
+      points: 4,
+      musyrifName: 'Ustadz Abdullah'
+    },
+    {
+      id: 'activity_2',
+      type: 'GOAL_PROGRESS',
+      title: 'Progress Goal',
+      description: 'Milestone "Memimpin doa pembuka" berhasil diselesaikan',
+      date: '2024-02-11',
+      time: '08:00:00',
+      points: 5,
+      musyrifName: 'Ustadz Abdullah'
+    },
+    {
+      id: 'activity_3',
+      type: 'ACHIEVEMENT',
+      title: 'Pencapaian',
+      description: 'Mendapat penghargaan "Santri Teladan Minggu Ini"',
+      date: '2024-02-10',
+      time: '10:00:00',
+      points: 10,
+      musyrifName: 'Ustadz Abdullah'
+    }
+  ];
+
+  const messages = [
+    {
+      id: 'msg_1',
+      from: 'Ustadz Abdullah',
+      subject: 'Progress Ahmad Minggu Ini',
+      message: 'Assalamu\'alaikum. Ahmad menunjukkan perkembangan yang sangat baik minggu ini. Dia aktif membantu teman dan rajin dalam hafalan.',
+      date: '2024-02-12',
+      time: '15:30:00',
+      isRead: false,
+      type: 'PROGRESS_UPDATE'
+    },
+    {
+      id: 'msg_2',
+      from: 'Admin TPQ',
+      subject: 'Undangan Pertemuan Wali',
+      message: 'Kami mengundang Bapak/Ibu untuk menghadiri pertemuan wali santri pada Sabtu, 17 Februari 2024 pukul 09:00 WIB.',
+      date: '2024-02-11',
+      time: '10:00:00',
+      isRead: true,
+      type: 'ANNOUNCEMENT'
+    }
+  ];
+
+  const unreadMessages = messages.filter(m => !m.isRead).length;
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -187,13 +288,32 @@ const WaliDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard Wali Santri
-          </h1>
-          <p className="text-gray-600">
-            Selamat datang kembali, {user.name}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Dashboard Wali Santri
+            </h1>
+            <p className="text-gray-600">
+              Selamat datang kembali, {user.name}
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            {unreadMessages > 0 && (
+              <div className="relative">
+                <Button variant="outline">
+                  <Bell className="h-4 w-4 mr-2" />
+                  Notifikasi
+                </Button>
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadMessages}
+                </span>
+              </div>
+            )}
+            <Button variant="outline">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Hubungi Musyrif
+            </Button>
+          </div>
         </div>
 
         {/* Child Profile Card */}
@@ -369,43 +489,216 @@ const WaliDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Aksi Cepat</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button className="p-4 text-center bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors">
-                <GraduationCap className="h-8 w-8 text-teal-600 mx-auto mb-2" />
-                <span className="text-sm font-medium text-teal-900">
-                  Progress Hafalan
-                </span>
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'overview', name: 'Ringkasan', icon: BarChart3 },
+              { id: 'behavior', name: 'Perilaku', icon: Heart },
+              { id: 'goals', name: 'Goal Karakter', icon: Target },
+              { id: 'activities', name: 'Aktivitas', icon: Activity },
+              { id: 'messages', name: 'Pesan', icon: MessageSquare }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-teal-500 text-teal-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.name}</span>
+                {tab.id === 'messages' && unreadMessages > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {unreadMessages}
+                  </span>
+                )}
               </button>
-              
-              <button className="p-4 text-center bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                <Calendar className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <span className="text-sm font-medium text-blue-900">
-                  Riwayat Absensi
-                </span>
-              </button>
-              
-              <button className="p-4 text-center bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                <CreditCard className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <span className="text-sm font-medium text-green-900">
-                  Pembayaran
-                </span>
-              </button>
-              
-              <button className="p-4 text-center bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
-                <BookOpen className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <span className="text-sm font-medium text-purple-900">
-                  Laporan Bulanan
-                </span>
-              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Behavior Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Heart className="h-5 w-5 text-red-600" />
+                    <span>Ringkasan Perilaku</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-green-600">{behaviorSummary.positiveCount}</div>
+                      <div className="text-xs text-gray-600">Positif</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-red-600">{behaviorSummary.negativeCount}</div>
+                      <div className="text-xs text-gray-600">Negatif</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-gray-900">{behaviorSummary.behaviorScore}</div>
+                      <div className="text-xs text-gray-600">Skor</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Kekuatan:</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {behaviorSummary.strengths.slice(0, 2).map((strength, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <CheckCircle className="h-3 w-3 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Area Pengembangan:</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {behaviorSummary.areasForImprovement.map((area, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <Target className="h-3 w-3 text-orange-600 mt-0.5 flex-shrink-0" />
+                          <span>{area}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Active Goals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5 text-purple-600" />
+                    <span>Goal Karakter Aktif</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {activeGoals.map((goal) => (
+                    <div key={goal.id} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900">{goal.title}</h4>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full text-purple-600 bg-purple-100">
+                          {goal.category}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">{goal.description}</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Progress</span>
+                        <span className="text-sm font-bold text-gray-900">{goal.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-purple-600 h-2 rounded-full"
+                          style={{ width: `${goal.progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <span>Target: {goal.targetDate}</span>
+                        <span>{goal.completedMilestones}/{goal.milestones} milestone</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {activeTab === 'activities' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  <span>Aktivitas Terbaru</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg">
+                      <div className="p-2 rounded-lg bg-blue-100">
+                        {activity.type === 'BEHAVIOR_POSITIVE' && <Heart className="h-4 w-4 text-blue-600" />}
+                        {activity.type === 'GOAL_PROGRESS' && <Target className="h-4 w-4 text-blue-600" />}
+                        {activity.type === 'ACHIEVEMENT' && <Award className="h-4 w-4 text-blue-600" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-900">{activity.title}</h4>
+                          <span className="text-sm font-medium text-green-600">+{activity.points} poin</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                        <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
+                          <span>{activity.date}</span>
+                          <span>•</span>
+                          <span>{activity.time}</span>
+                          <span>•</span>
+                          <span>{activity.musyrifName}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'messages' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <span>Pesan dari TPQ</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`p-4 border rounded-lg ${
+                        message.isRead ? 'border-gray-200 bg-white' : 'border-teal-200 bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-medium text-gray-900">{message.subject}</h4>
+                          {!message.isRead && (
+                            <span className="w-2 h-2 bg-teal-600 rounded-full"></span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {message.date} {message.time}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">Dari: {message.from}</p>
+                      <p className="text-sm text-gray-700">{message.message}</p>
+                      <div className="flex space-x-2 mt-3">
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          Balas
+                        </Button>
+                        {!message.isRead && (
+                          <Button variant="outline" size="sm">
+                            Tandai Dibaca
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
