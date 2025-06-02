@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import MidtransService from '@/lib/midtrans-service';
 import { STATUS_MAPPING } from '@/lib/midtrans-config';
+import { NotificationService, NotificationType, NotificationChannel } from '@/lib/notification-service';
+import { WhatsAppService } from '@/lib/whatsapp-service';
+import { EmailService } from '@/lib/email-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -240,15 +243,99 @@ async function handleRefundPayment(orderId: string, notification: any) {
 // Send payment confirmation (WhatsApp, Email)
 async function sendPaymentConfirmation(orderId: string, notification: any) {
   try {
-    // Mock implementation
     console.log(`Sending payment confirmation for order: ${orderId}`);
-    
-    // Here you would:
-    // 1. Get customer details from database
-    // 2. Send WhatsApp notification using WhatsApp API
-    // 3. Send email receipt using email service
-    // 4. Update notification log
-    
+
+    // Mock customer data - in real app, get from database
+    const customerData = {
+      santriName: 'Ahmad Fauzi', // Get from database
+      email: 'parent@example.com', // Get from database
+      phone: '628123456789', // Get from database
+      orderId: orderId,
+      paymentType: getPaymentTypeFromOrderId(orderId),
+      amount: parseFloat(notification.gross_amount),
+      paymentDate: notification.transaction_time,
+      paymentMethod: getPaymentMethodText(notification.payment_type)
+    };
+
+    // Send WhatsApp notification
+    try {
+      const whatsappService = new WhatsAppService();
+      const whatsappMessage = `
+🎉 *PEMBAYARAN BERHASIL* 🎉
+
+Assalamu'alaikum Wr. Wb.
+Yth. Bapak/Ibu Wali Santri
+
+Pembayaran untuk santri *${customerData.santriName}* telah berhasil diproses.
+
+📋 *Detail Pembayaran:*
+• ID Transaksi: ${customerData.orderId}
+• Jenis: ${customerData.paymentType}
+• Jumlah: Rp ${customerData.amount.toLocaleString('id-ID')}
+• Tanggal: ${new Date(customerData.paymentDate).toLocaleDateString('id-ID')}
+• Status: ✅ LUNAS
+
+💳 *Metode Pembayaran:*
+${customerData.paymentMethod}
+
+📄 *Kwitansi digital telah dikirim ke email Anda.*
+
+Jazakallahu khairan atas kepercayaan Anda kepada TPQ Baitus Shuffah.
+
+Wassalamu'alaikum Wr. Wb.
+
+*TPQ Baitus Shuffah*
+🏫 Jl. Contoh No. 123, Jakarta
+📞 (021) 1234-5678
+🌐 www.tpq-baitus-shuffah.com
+      `.trim();
+
+      await whatsappService.sendTextMessage(customerData.phone, whatsappMessage, {
+        type: 'payment_confirmation',
+        orderId: orderId
+      });
+
+      console.log(`WhatsApp confirmation sent for order: ${orderId}`);
+    } catch (error) {
+      console.error(`Error sending WhatsApp confirmation for ${orderId}:`, error);
+    }
+
+    // Send Email notification
+    try {
+      const emailService = new EmailService();
+      await emailService.sendTemplateEmail(
+        customerData.email,
+        'payment_confirmation',
+        customerData,
+        { priority: 'HIGH' }
+      );
+
+      console.log(`Email confirmation sent for order: ${orderId}`);
+    } catch (error) {
+      console.error(`Error sending email confirmation for ${orderId}:`, error);
+    }
+
+    // Create in-app notification
+    try {
+      await NotificationService.createNotification({
+        title: '✅ Pembayaran Berhasil',
+        message: `Pembayaran ${customerData.paymentType} untuk santri ${customerData.santriName} sebesar Rp ${customerData.amount.toLocaleString('id-ID')} telah berhasil diproses.`,
+        type: NotificationType.PAYMENT_CONFIRMATION,
+        channels: [NotificationChannel.IN_APP],
+        recipientId: 'parent_user_id', // Get from database
+        metadata: {
+          orderId: orderId,
+          amount: customerData.amount,
+          paymentType: customerData.paymentType
+        },
+        createdBy: 'system'
+      });
+
+      console.log(`In-app notification created for order: ${orderId}`);
+    } catch (error) {
+      console.error(`Error creating in-app notification for ${orderId}:`, error);
+    }
+
   } catch (error) {
     console.error(`Error sending payment confirmation for ${orderId}:`, error);
   }
@@ -307,13 +394,40 @@ async function sendRefundConfirmation(orderId: string, notification: any) {
   try {
     // Mock implementation
     console.log(`Sending refund confirmation for order: ${orderId}`);
-    
+
     // Here you would:
     // 1. Send refund confirmation to customer
     // 2. Update financial records
     // 3. Generate refund receipt
-    
+
   } catch (error) {
     console.error(`Error sending refund confirmation for ${orderId}:`, error);
+  }
+}
+
+// Helper function to get payment type from order ID
+function getPaymentTypeFromOrderId(orderId: string): string {
+  // Extract payment type from order ID pattern
+  // Example: TPQ-SPP-1234567890-ABC123
+  if (orderId.includes('SPP')) return 'SPP Bulanan';
+  if (orderId.includes('DAFTAR')) return 'Daftar Ulang';
+  if (orderId.includes('SERAGAM')) return 'Seragam';
+  if (orderId.includes('KEGIATAN')) return 'Kegiatan Khusus';
+  return 'Pembayaran Lainnya';
+}
+
+// Helper function to get payment method text
+function getPaymentMethodText(paymentType: string): string {
+  switch (paymentType?.toLowerCase()) {
+    case 'bank_transfer': return 'Transfer Bank';
+    case 'credit_card': return 'Kartu Kredit';
+    case 'gopay': return 'GoPay';
+    case 'shopeepay': return 'ShopeePay';
+    case 'dana': return 'DANA';
+    case 'linkaja': return 'LinkAja';
+    case 'ovo': return 'OVO';
+    case 'qris': return 'QRIS';
+    case 'cstore': return 'Convenience Store';
+    default: return paymentType || 'Metode Pembayaran Digital';
   }
 }
