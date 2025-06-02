@@ -7,15 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useAuth } from '@/components/providers/AuthProvider';
-import QRCodeGenerator from '@/components/qr/QRCodeGenerator';
-import QRScanner from '@/components/qr/QRScanner';
+import AddAttendanceModal from '@/components/modals/AddAttendanceModal';
+import AttendanceDetailModal from '@/components/modals/AttendanceDetailModal';
 import {
   Calendar,
   Search,
   Filter,
   Download,
   Plus,
-  QrCode,
   Users,
   CheckCircle,
   XCircle,
@@ -23,7 +22,9 @@ import {
   AlertTriangle,
   Eye,
   UserCheck,
-  UserX
+  UserX,
+  Edit,
+  TrendingUp
 } from 'lucide-react';
 
 interface AttendanceRecord {
@@ -59,8 +60,12 @@ const AttendancePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('TODAY');
-  const [activeTab, setActiveTab] = useState<'records' | 'sessions' | 'scanner'>('records');
-  const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<any>(null);
+  const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   // Check authentication and role
@@ -96,74 +101,202 @@ const AttendancePage = () => {
     return null;
   }
 
-  // Mock data
-  const attendanceRecords: AttendanceRecord[] = [
-    {
-      id: '1',
-      santriId: '1',
-      santriName: 'Ahmad Fauzi',
-      santriNis: '24001',
-      halaqahId: '1',
-      halaqahName: 'Halaqah Al-Fatihah',
-      date: '2024-02-12',
-      checkIn: '08:00',
-      checkOut: '09:30',
-      status: 'PRESENT',
-      scannedBy: 'Ustadz Abdullah'
-    },
-    {
-      id: '2',
-      santriId: '2',
-      santriName: 'Siti Aisyah',
-      santriNis: '24002',
-      halaqahId: '1',
-      halaqahName: 'Halaqah Al-Fatihah',
-      date: '2024-02-12',
-      checkIn: '08:15',
-      status: 'LATE',
-      notes: 'Terlambat 15 menit',
-      scannedBy: 'Ustadz Abdullah'
-    },
-    {
-      id: '3',
-      santriId: '3',
-      santriName: 'Muhammad Rizki',
-      santriNis: '24003',
-      halaqahId: '2',
-      halaqahName: 'Halaqah Al-Baqarah',
-      date: '2024-02-12',
-      checkIn: '10:00',
-      status: 'PRESENT',
-      scannedBy: 'Ustadzah Fatimah'
-    }
-  ];
+  // Load attendance data
+  useEffect(() => {
+    loadAttendanceData();
+  }, []);
 
-  const attendanceSessions: AttendanceSession[] = [
-    {
-      id: '1',
-      halaqahId: '1',
-      halaqahName: 'Halaqah Al-Fatihah',
-      date: '2024-02-12',
-      startTime: '08:00',
-      endTime: '09:30',
-      qrCode: 'attendance_2024-02-12_halaqah-1',
-      isActive: true,
-      totalSantri: 15,
-      presentCount: 12
-    },
-    {
-      id: '2',
-      halaqahId: '2',
-      halaqahName: 'Halaqah Al-Baqarah',
-      date: '2024-02-12',
-      startTime: '10:00',
-      endTime: '11:30',
-      qrCode: 'attendance_2024-02-12_halaqah-2',
-      isActive: false,
-      totalSantri: 18,
-      presentCount: 16
+  const loadAttendanceData = async () => {
+    try {
+      setLoading(true);
+      // Mock attendance data
+      const mockAttendance = [
+        {
+          id: '1',
+          date: '2024-01-15',
+          session: 'MORNING',
+          halaqah: 'Halaqah Al-Fatihah',
+          musyrifId: '1',
+          musyrifName: 'Ustadz Abdullah',
+          location: 'Ruang Kelas A',
+          topic: 'Hafalan Surah Al-Fatihah',
+          notes: 'Pembelajaran berjalan lancar',
+          totalSantri: 5,
+          presentCount: 4,
+          absentCount: 1,
+          lateCount: 0,
+          sickCount: 0,
+          permissionCount: 0,
+          attendanceList: [
+            {
+              santriId: '1',
+              santriName: 'Ahmad Fauzi',
+              santriNis: '24001',
+              status: 'PRESENT',
+              arrivalTime: '07:30',
+              notes: ''
+            },
+            {
+              santriId: '2',
+              santriName: 'Siti Aisyah',
+              santriNis: '24002',
+              status: 'PRESENT',
+              arrivalTime: '07:25',
+              notes: ''
+            },
+            {
+              santriId: '3',
+              santriName: 'Muhammad Rizki',
+              santriNis: '24003',
+              status: 'ABSENT',
+              arrivalTime: '',
+              notes: 'Sakit demam'
+            }
+          ],
+          createdAt: '2024-01-15T07:00:00Z',
+          updatedAt: '2024-01-15T07:30:00Z'
+        },
+        {
+          id: '2',
+          date: '2024-01-14',
+          session: 'AFTERNOON',
+          halaqah: 'Halaqah Al-Baqarah',
+          musyrifId: '2',
+          musyrifName: 'Ustadzah Fatimah',
+          location: 'Ruang Kelas B',
+          topic: 'Murajaah Surah Al-Baqarah',
+          notes: 'Perlu lebih fokus pada tajwid',
+          totalSantri: 3,
+          presentCount: 3,
+          absentCount: 0,
+          lateCount: 0,
+          sickCount: 0,
+          permissionCount: 0,
+          attendanceList: [
+            {
+              santriId: '4',
+              santriName: 'Fatimah Zahra',
+              santriNis: '24004',
+              status: 'PRESENT',
+              arrivalTime: '13:00',
+              notes: ''
+            },
+            {
+              santriId: '5',
+              santriName: 'Abdullah Rahman',
+              santriNis: '24005',
+              status: 'PRESENT',
+              arrivalTime: '13:05',
+              notes: ''
+            }
+          ],
+          createdAt: '2024-01-14T13:00:00Z',
+          updatedAt: '2024-01-14T13:30:00Z'
+        }
+      ];
+
+      setAttendanceList(mockAttendance);
+    } catch (error) {
+      console.error('Error loading attendance:', error);
+      alert('Gagal memuat data kehadiran');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleCreateAttendance = async (attendanceData: any) => {
+    try {
+      // Mock create - add to local state
+      const newAttendance = {
+        ...attendanceData,
+        id: `attendance_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setAttendanceList(prev => [...prev, newAttendance]);
+      alert('Data kehadiran berhasil disimpan!');
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error creating attendance:', error);
+      alert('Gagal menyimpan data kehadiran');
+    }
+  };
+
+  const handleUpdateAttendance = async (attendanceData: any) => {
+    try {
+      // Mock update - update local state
+      setAttendanceList(prev => prev.map(a =>
+        a.id === editingAttendance?.id ? { ...attendanceData, id: editingAttendance.id, updatedAt: new Date().toISOString() } : a
+      ));
+      alert('Data kehadiran berhasil diperbarui!');
+      setEditingAttendance(null);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      alert('Gagal memperbarui data kehadiran');
+    }
+  };
+
+  const handleDeleteAttendance = async (attendanceId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data kehadiran ini?')) return;
+
+    try {
+      // Mock delete - remove from local state
+      setAttendanceList(prev => prev.filter(a => a.id !== attendanceId));
+      alert('Data kehadiran berhasil dihapus!');
+      setShowDetailModal(false);
+    } catch (error) {
+      console.error('Error deleting attendance:', error);
+      alert('Gagal menghapus data kehadiran');
+    }
+  };
+
+  const handleViewDetail = (attendance: any) => {
+    setSelectedAttendance(attendance);
+    setShowDetailModal(true);
+  };
+
+  const handleEditAttendance = (attendance: any) => {
+    setEditingAttendance(attendance);
+    setShowDetailModal(false);
+    setShowAddModal(true);
+  };
+
+  // Filter attendance data
+  const filteredAttendance = attendanceList.filter(attendance => {
+    const matchesSearch = attendance.halaqah.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         attendance.musyrifName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         attendance.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // For now, we'll filter by overall session status rather than individual student status
+    return matchesSearch;
+  });
+
+  // Calculate stats
+  const stats = {
+    totalSessions: attendanceList.length,
+    totalSantri: attendanceList.reduce((sum, a) => sum + a.totalSantri, 0),
+    totalPresent: attendanceList.reduce((sum, a) => sum + a.presentCount, 0),
+    totalAbsent: attendanceList.reduce((sum, a) => sum + a.absentCount, 0),
+    totalLate: attendanceList.reduce((sum, a) => sum + a.lateCount, 0),
+    attendanceRate: attendanceList.length > 0
+      ? Math.round((attendanceList.reduce((sum, a) => sum + a.presentCount, 0) /
+          attendanceList.reduce((sum, a) => sum + a.totalSantri, 0)) * 100)
+      : 0
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data kehadiran...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -195,31 +328,13 @@ const AttendancePage = () => {
     }
   };
 
-  const handleQRScan = (data: string) => {
-    console.log('QR Scanned:', data);
-    // Process attendance scan
-    alert(`QR Code scanned: ${data}`);
-  };
-
-  const createAttendanceSession = () => {
-    // Mock create new session
-    alert('Fitur create session akan diimplementasikan');
-  };
-
-  const filteredRecords = attendanceRecords.filter(record => {
-    const matchesSearch = record.santriName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.santriNis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.halaqahName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || record.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = {
-    totalToday: attendanceRecords.filter(r => r.date === '2024-02-12').length,
-    presentToday: attendanceRecords.filter(r => r.date === '2024-02-12' && r.status === 'PRESENT').length,
-    lateToday: attendanceRecords.filter(r => r.date === '2024-02-12' && r.status === 'LATE').length,
-    absentToday: attendanceRecords.filter(r => r.date === '2024-02-12' && r.status === 'ABSENT').length,
-    activeSessions: attendanceSessions.filter(s => s.isActive).length
+  const getSessionText = (session: string) => {
+    switch (session) {
+      case 'MORNING': return 'Pagi';
+      case 'AFTERNOON': return 'Siang';
+      case 'EVENING': return 'Sore';
+      default: return session;
+    }
   };
 
   return (
@@ -229,15 +344,15 @@ const AttendancePage = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Sistem Absensi QR Code
+              Manajemen Kehadiran
             </h1>
             <p className="text-gray-600">
-              Kelola absensi santri dengan teknologi QR Code
+              Kelola dan pantau kehadiran santri TPQ
             </p>
           </div>
-          <Button onClick={createAttendanceSession}>
+          <Button onClick={() => setShowAddModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Buat Sesi Absensi
+            Catat Kehadiran
           </Button>
         </div>
 
@@ -247,10 +362,10 @@ const AttendancePage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Hari Ini</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalToday}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Sesi</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalSessions}</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-600" />
+                <Calendar className="h-8 w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -259,8 +374,8 @@ const AttendancePage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Hadir</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.presentToday}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Hadir</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.totalPresent}</p>
                 </div>
                 <UserCheck className="h-8 w-8 text-green-600" />
               </div>
@@ -271,8 +386,8 @@ const AttendancePage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Terlambat</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.lateToday}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Terlambat</p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.totalLate}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
               </div>
@@ -283,8 +398,8 @@ const AttendancePage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Tidak Hadir</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.absentToday}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Tidak Hadir</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.totalAbsent}</p>
                 </div>
                 <UserX className="h-8 w-8 text-red-600" />
               </div>
@@ -295,203 +410,155 @@ const AttendancePage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Sesi Aktif</p>
-                  <p className="text-2xl font-bold text-teal-600">{stats.activeSessions}</p>
+                  <p className="text-sm font-medium text-gray-600">Tingkat Kehadiran</p>
+                  <p className="text-2xl font-bold text-teal-600">{stats.attendanceRate}%</p>
                 </div>
-                <QrCode className="h-8 w-8 text-teal-600" />
+                <TrendingUp className="h-8 w-8 text-teal-600" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'records', label: 'Rekap Absensi', icon: Calendar },
-              { id: 'sessions', label: 'Sesi Absensi', icon: QrCode },
-              { id: 'scanner', label: 'QR Scanner', icon: Users }
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-teal-500 text-teal-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'records' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rekap Absensi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Cari santri, NIS, atau halaqah..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    leftIcon={<Search className="h-4 w-4" />}
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                  >
-                    <option value="ALL">Semua Status</option>
-                    <option value="PRESENT">Hadir</option>
-                    <option value="LATE">Terlambat</option>
-                    <option value="ABSENT">Tidak Hadir</option>
-                    <option value="EXCUSED">Izin</option>
-                  </select>
-                  
-                  <Button variant="outline">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                  
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
+        {/* Main Content */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Kehadiran</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  placeholder="Cari halaqah, musyrif, atau lokasi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leftIcon={<Search className="h-4 w-4" />}
+                />
               </div>
 
-              {/* Attendance Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Santri</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Halaqah</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Tanggal</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Check In</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Check Out</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((record) => (
-                      <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{record.santriName}</p>
-                            <p className="text-sm text-gray-500">NIS: {record.santriNis}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-900">{record.halaqahName}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-900">
-                            {new Date(record.date).toLocaleDateString('id-ID')}
+              <div className="flex gap-2">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                >
+                  <option value="ALL">Semua Tanggal</option>
+                  <option value="TODAY">Hari Ini</option>
+                  <option value="WEEK">Minggu Ini</option>
+                  <option value="MONTH">Bulan Ini</option>
+                </select>
+
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </div>
+
+            {/* Attendance Sessions Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Tanggal & Sesi</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Halaqah</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Musyrif</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Lokasi</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Kehadiran</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Tingkat Kehadiran</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAttendance.map((attendance) => (
+                    <tr key={attendance.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {new Date(attendance.date).toLocaleDateString('id-ID')}
+                          </p>
+                          <p className="text-sm text-gray-500">{getSessionText(attendance.session)}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-900">{attendance.halaqah}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-900">{attendance.musyrifName}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-900">{attendance.location || '-'}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-4 text-sm">
+                          <span className="text-green-600 font-medium">
+                            {attendance.presentCount} hadir
                           </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-900">{record.checkIn}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-900">{record.checkOut || '-'}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(record.status)}
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
-                              {record.status}
+                          <span className="text-red-600">
+                            {attendance.absentCount} tidak hadir
+                          </span>
+                          {attendance.lateCount > 0 && (
+                            <span className="text-yellow-600">
+                              {attendance.lateCount} terlambat
                             </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-teal-600 h-2 rounded-full"
+                              style={{
+                                width: `${Math.round((attendance.presentCount / attendance.totalSantri) * 100)}%`
+                              }}
+                            ></div>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Button variant="ghost" size="sm">
+                          <span className="text-sm font-medium text-gray-900">
+                            {Math.round((attendance.presentCount / attendance.totalSantri) * 100)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleViewDetail(attendance)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                          <Button variant="outline" size="sm" onClick={() => handleEditAttendance(attendance)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
 
-        {activeTab === 'sessions' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {attendanceSessions.map((session) => (
-              <Card key={session.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{session.halaqahName}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      session.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {session.isActive ? 'Aktif' : 'Selesai'}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Tanggal:</span>
-                        <p className="font-medium">{new Date(session.date).toLocaleDateString('id-ID')}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Waktu:</span>
-                        <p className="font-medium">{session.startTime} - {session.endTime}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Total Santri:</span>
-                        <p className="font-medium">{session.totalSantri}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Hadir:</span>
-                        <p className="font-medium text-green-600">{session.presentCount}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <QRCodeGenerator
-                        data={session.qrCode}
-                        title="QR Code Absensi"
-                        size={200}
-                        showControls={false}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* Modals */}
+        <AddAttendanceModal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingAttendance(null);
+          }}
+          onSave={editingAttendance ? handleUpdateAttendance : handleCreateAttendance}
+          editData={editingAttendance}
+        />
 
-        {activeTab === 'scanner' && (
-          <div className="max-w-2xl mx-auto">
-            <QRScanner
-              onScan={handleQRScan}
-              title="Scanner Absensi"
-              description="Scan QR code santri untuk mencatat kehadiran"
-              continuous={true}
-            />
-          </div>
-        )}
+        <AttendanceDetailModal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          onEdit={() => handleEditAttendance(selectedAttendance)}
+          onDelete={() => handleDeleteAttendance(selectedAttendance?.id)}
+          attendance={selectedAttendance}
+        />
       </div>
     </DashboardLayout>
   );
