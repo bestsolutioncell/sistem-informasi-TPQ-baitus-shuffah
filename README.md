@@ -64,7 +64,7 @@ Sistem Informasi Manajemen Rumah Tahfidz yang modern dan terintegrasi untuk meng
 
 1. **Clone repository**
 ```bash
-git clone github.com/bestsolutioncell/sistem-informasi-TPQ-baitus-shuffah
+git clone https://github.com/bestsolutioncell/sistem-informasi-TPQ-baitus-shuffah
 cd sistem-informasi-TPQ-baitus-shuffah
 ```
 
@@ -345,12 +345,12 @@ npm run db:studio    # Open Prisma Studio
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Contact
+## 📞 Contact untuk pemesanan app web dan mobile
 
-- **Website**: https://rumahtahfidz.com
-- **Email**: info@rumahtahfidz.com
-- **Phone**: +62 21 1234 5678
-- **Address**: Jl. Islamic Center No. 123, Jakarta Pusat
+- **Website**: riyandevapp.com
+- **Email**: info@riyandevapp.com
+- **Phone**: +62 857-8972-0824
+- **Address**: jl. Gemilang 1, dusun Tanjung Laut, Desa Fajar Baru, Kec. Jati Agung, lampung selatan
 
 ## 🙏 Acknowledgments
 
