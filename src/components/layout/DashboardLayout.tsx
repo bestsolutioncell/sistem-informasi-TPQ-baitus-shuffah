@@ -95,6 +95,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           roles: ['ADMIN', 'MUSYRIF', 'WALI']
         },
         {
+          name: 'Progress Hafalan',
+          href: `/dashboard/${user?.role?.toLowerCase()}/hafalan/progress`,
+          icon: TrendingUp,
+          roles: ['ADMIN', 'MUSYRIF', 'WALI']
+        },
+        {
           name: 'Absensi',
           href: `/dashboard/${user?.role?.toLowerCase()}/attendance`,
           icon: Calendar,

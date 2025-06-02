@@ -10,6 +10,18 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import AddHafalanModal from '@/components/modals/AddHafalanModal';
 import HafalanDetailModal from '@/components/modals/HafalanDetailModal';
 import {
+  QURAN_SURAHS,
+  HafalanRecord,
+  HafalanProgress,
+  HafalanType,
+  HafalanStatus,
+  HafalanGrade,
+  getSurahById,
+  calculateHafalanProgress,
+  getGradeColor,
+  getStatusColor
+} from '@/lib/quran-data';
+import {
   GraduationCap,
   Search,
   Filter,
