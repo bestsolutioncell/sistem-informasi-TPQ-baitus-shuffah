@@ -305,6 +305,95 @@ export interface TargetAchievement {
   certificateUrl?: string;
 }
 
+// Achievement Badge
+export interface AchievementBadge {
+  id: string;
+  name: string;
+  nameArabic: string;
+  description: string;
+  icon: string;
+  color: string;
+  category: 'HAFALAN' | 'ATTENDANCE' | 'BEHAVIOR' | 'ACADEMIC' | 'SPECIAL';
+  criteria: {
+    type: 'SURAH_COUNT' | 'AYAH_COUNT' | 'PERFECT_SCORE' | 'STREAK' | 'TIME_BASED' | 'CUSTOM';
+    value: number;
+    condition: 'GREATER_THAN' | 'EQUAL' | 'LESS_THAN' | 'BETWEEN';
+    timeframe?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'ALL_TIME';
+  };
+  rarity: 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
+  points: number;
+  isActive: boolean;
+  unlockMessage: string;
+  shareMessage: string;
+}
+
+// Santri Achievement
+export interface SantriAchievement {
+  id: string;
+  santriId: string;
+  santriName: string;
+  badgeId: string;
+  badgeName: string;
+  achievedAt: string;
+  progress: number; // 0-100
+  isUnlocked: boolean;
+  notificationSent: boolean;
+  certificateGenerated: boolean;
+  certificateUrl?: string;
+  sharedAt?: string;
+  metadata?: {
+    surahsCompleted?: number;
+    ayahsMemorized?: number;
+    perfectScores?: number;
+    streakDays?: number;
+    customData?: any;
+  };
+}
+
+// Notification
+export interface Notification {
+  id: string;
+  recipientId: string;
+  recipientType: 'SANTRI' | 'WALI' | 'MUSYRIF' | 'ADMIN';
+  type: 'ACHIEVEMENT' | 'TARGET_REMINDER' | 'TARGET_OVERDUE' | 'PROGRESS_UPDATE' | 'GENERAL';
+  title: string;
+  message: string;
+  data?: any;
+  channels: ('IN_APP' | 'EMAIL' | 'WHATSAPP' | 'SMS')[];
+  status: 'PENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  scheduledAt?: string;
+  sentAt?: string;
+  readAt?: string;
+  createdAt: string;
+  metadata?: {
+    achievementId?: string;
+    targetId?: string;
+    templateId?: string;
+    retryCount?: number;
+    errorMessage?: string;
+  };
+}
+
+// Certificate Template
+export interface CertificateTemplate {
+  id: string;
+  name: string;
+  type: 'ACHIEVEMENT' | 'COMPLETION' | 'MILESTONE' | 'PERFECT_SCORE' | 'ANNUAL';
+  category: 'HAFALAN' | 'ATTENDANCE' | 'BEHAVIOR' | 'ACADEMIC';
+  templateUrl: string;
+  thumbnailUrl: string;
+  fields: {
+    santriName: { x: number; y: number; fontSize: number; color: string; fontFamily: string };
+    achievementName: { x: number; y: number; fontSize: number; color: string; fontFamily: string };
+    date: { x: number; y: number; fontSize: number; color: string; fontFamily: string };
+    signature: { x: number; y: number; width: number; height: number };
+    logo: { x: number; y: number; width: number; height: number };
+  };
+  isActive: boolean;
+  createdAt: string;
+}
+
 // Helper Functions
 export const getSurahById = (id: number): Surah | undefined => {
   return QURAN_SURAHS.find(surah => surah.id === id);
@@ -534,3 +623,291 @@ export const TARGET_TEMPLATES: TargetTemplate[] = [
     isActive: true
   }
 ];
+
+// Achievement Badges
+export const ACHIEVEMENT_BADGES: AchievementBadge[] = [
+  {
+    id: 'badge_first_surah',
+    name: 'Surah Pertama',
+    nameArabic: 'السورة الأولى',
+    description: 'Menyelesaikan hafalan surah pertama',
+    icon: '🌟',
+    color: '#10b981',
+    category: 'HAFALAN',
+    criteria: {
+      type: 'SURAH_COUNT',
+      value: 1,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'COMMON',
+    points: 100,
+    isActive: true,
+    unlockMessage: 'Selamat! Anda telah menyelesaikan hafalan surah pertama!',
+    shareMessage: 'Alhamdulillah, saya telah menyelesaikan hafalan surah pertama di TPQ Baitus Shuffah! 🌟'
+  },
+  {
+    id: 'badge_juz_amma',
+    name: 'Juz Amma Master',
+    nameArabic: 'حافظ جزء عم',
+    description: 'Menguasai seluruh surah dalam Juz 30',
+    icon: '📖',
+    color: '#3b82f6',
+    category: 'HAFALAN',
+    criteria: {
+      type: 'CUSTOM',
+      value: 37,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'RARE',
+    points: 1000,
+    isActive: true,
+    unlockMessage: 'Masya Allah! Anda telah menguasai Juz Amma!',
+    shareMessage: 'Alhamdulillah, saya telah menguasai Juz Amma di TPQ Baitus Shuffah! 📖✨'
+  },
+  {
+    id: 'badge_perfect_score',
+    name: 'Hafidz Sempurna',
+    nameArabic: 'الحافظ المتقن',
+    description: 'Mendapat nilai sempurna (A+) dalam 5 evaluasi berturut-turut',
+    icon: '⭐',
+    color: '#f59e0b',
+    category: 'ACADEMIC',
+    criteria: {
+      type: 'PERFECT_SCORE',
+      value: 5,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'EPIC',
+    points: 500,
+    isActive: true,
+    unlockMessage: 'Luar biasa! Anda adalah Hafidz Sempurna!',
+    shareMessage: 'Alhamdulillah, saya meraih gelar Hafidz Sempurna di TPQ Baitus Shuffah! ⭐'
+  },
+  {
+    id: 'badge_consistent_learner',
+    name: 'Santri Istiqomah',
+    nameArabic: 'الطالب المستقيم',
+    description: 'Hadir konsisten selama 30 hari berturut-turut',
+    icon: '🔥',
+    color: '#ef4444',
+    category: 'ATTENDANCE',
+    criteria: {
+      type: 'STREAK',
+      value: 30,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'UNCOMMON',
+    points: 300,
+    isActive: true,
+    unlockMessage: 'Masya Allah! Istiqomah adalah kunci kesuksesan!',
+    shareMessage: 'Alhamdulillah, saya meraih badge Santri Istiqomah di TPQ Baitus Shuffah! 🔥'
+  },
+  {
+    id: 'badge_speed_learner',
+    name: 'Hafidz Kilat',
+    nameArabic: 'الحافظ السريع',
+    description: 'Menyelesaikan target hafalan lebih cepat dari deadline',
+    icon: '⚡',
+    color: '#8b5cf6',
+    category: 'HAFALAN',
+    criteria: {
+      type: 'TIME_BASED',
+      value: 1,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'RARE',
+    points: 400,
+    isActive: true,
+    unlockMessage: 'Subhanallah! Kecepatan hafalan Anda luar biasa!',
+    shareMessage: 'Alhamdulillah, saya meraih badge Hafidz Kilat di TPQ Baitus Shuffah! ⚡'
+  },
+  {
+    id: 'badge_al_fatihah_master',
+    name: 'Master Al-Fatihah',
+    nameArabic: 'حافظ الفاتحة',
+    description: 'Menguasai surah Al-Fatihah dengan sempurna',
+    icon: '🕌',
+    color: '#059669',
+    category: 'HAFALAN',
+    criteria: {
+      type: 'CUSTOM',
+      value: 1,
+      condition: 'EQUAL',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'COMMON',
+    points: 150,
+    isActive: true,
+    unlockMessage: 'Barakallahu fiik! Al-Fatihah adalah kunci shalat!',
+    shareMessage: 'Alhamdulillah, saya telah menguasai Al-Fatihah di TPQ Baitus Shuffah! 🕌'
+  },
+  {
+    id: 'badge_100_ayahs',
+    name: 'Hafidz 100 Ayat',
+    nameArabic: 'حافظ مائة آية',
+    description: 'Menghafal 100 ayat Al-Quran',
+    icon: '💯',
+    color: '#dc2626',
+    category: 'HAFALAN',
+    criteria: {
+      type: 'AYAH_COUNT',
+      value: 100,
+      condition: 'GREATER_THAN',
+      timeframe: 'ALL_TIME'
+    },
+    rarity: 'UNCOMMON',
+    points: 250,
+    isActive: true,
+    unlockMessage: 'Masya Allah! 100 ayat telah tersimpan di hati Anda!',
+    shareMessage: 'Alhamdulillah, saya telah menghafal 100 ayat Al-Quran di TPQ Baitus Shuffah! 💯'
+  },
+  {
+    id: 'badge_monthly_champion',
+    name: 'Juara Bulanan',
+    nameArabic: 'بطل الشهر',
+    description: 'Santri terbaik bulan ini',
+    icon: '🏆',
+    color: '#f59e0b',
+    category: 'SPECIAL',
+    criteria: {
+      type: 'CUSTOM',
+      value: 1,
+      condition: 'EQUAL',
+      timeframe: 'MONTHLY'
+    },
+    rarity: 'LEGENDARY',
+    points: 1000,
+    isActive: true,
+    unlockMessage: 'Subhanallah! Anda adalah Juara Bulanan!',
+    shareMessage: 'Alhamdulillah, saya meraih gelar Juara Bulanan di TPQ Baitus Shuffah! 🏆'
+  }
+];
+
+// Achievement Helper Functions
+export const getBadgeById = (id: string): AchievementBadge | undefined => {
+  return ACHIEVEMENT_BADGES.find(badge => badge.id === id);
+};
+
+export const getBadgesByCategory = (category: AchievementBadge['category']): AchievementBadge[] => {
+  return ACHIEVEMENT_BADGES.filter(badge => badge.category === category && badge.isActive);
+};
+
+export const getBadgesByRarity = (rarity: AchievementBadge['rarity']): AchievementBadge[] => {
+  return ACHIEVEMENT_BADGES.filter(badge => badge.rarity === rarity && badge.isActive);
+};
+
+export const getRarityColor = (rarity: AchievementBadge['rarity']): string => {
+  switch (rarity) {
+    case 'COMMON': return 'text-gray-600 bg-gray-100';
+    case 'UNCOMMON': return 'text-green-600 bg-green-100';
+    case 'RARE': return 'text-blue-600 bg-blue-100';
+    case 'EPIC': return 'text-purple-600 bg-purple-100';
+    case 'LEGENDARY': return 'text-yellow-600 bg-yellow-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
+export const getRarityText = (rarity: AchievementBadge['rarity']): string => {
+  switch (rarity) {
+    case 'COMMON': return 'Umum';
+    case 'UNCOMMON': return 'Tidak Umum';
+    case 'RARE': return 'Langka';
+    case 'EPIC': return 'Epik';
+    case 'LEGENDARY': return 'Legendaris';
+    default: return rarity;
+  }
+};
+
+export const getCategoryColor = (category: AchievementBadge['category']): string => {
+  switch (category) {
+    case 'HAFALAN': return 'text-teal-600 bg-teal-100';
+    case 'ATTENDANCE': return 'text-blue-600 bg-blue-100';
+    case 'BEHAVIOR': return 'text-green-600 bg-green-100';
+    case 'ACADEMIC': return 'text-purple-600 bg-purple-100';
+    case 'SPECIAL': return 'text-yellow-600 bg-yellow-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
+export const getCategoryText = (category: AchievementBadge['category']): string => {
+  switch (category) {
+    case 'HAFALAN': return 'Hafalan';
+    case 'ATTENDANCE': return 'Kehadiran';
+    case 'BEHAVIOR': return 'Perilaku';
+    case 'ACADEMIC': return 'Akademik';
+    case 'SPECIAL': return 'Khusus';
+    default: return category;
+  }
+};
+
+export const getNotificationStatusColor = (status: Notification['status']): string => {
+  switch (status) {
+    case 'PENDING': return 'text-yellow-600 bg-yellow-100';
+    case 'SENT': return 'text-blue-600 bg-blue-100';
+    case 'DELIVERED': return 'text-green-600 bg-green-100';
+    case 'READ': return 'text-teal-600 bg-teal-100';
+    case 'FAILED': return 'text-red-600 bg-red-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
+export const getNotificationStatusText = (status: Notification['status']): string => {
+  switch (status) {
+    case 'PENDING': return 'Menunggu';
+    case 'SENT': return 'Terkirim';
+    case 'DELIVERED': return 'Diterima';
+    case 'READ': return 'Dibaca';
+    case 'FAILED': return 'Gagal';
+    default: return status;
+  }
+};
+
+export const checkAchievementCriteria = (
+  badge: AchievementBadge,
+  santriData: {
+    surahsCompleted: number;
+    ayahsMemorized: number;
+    perfectScores: number;
+    streakDays: number;
+    customData?: any;
+  }
+): boolean => {
+  const { criteria } = badge;
+  let actualValue = 0;
+
+  switch (criteria.type) {
+    case 'SURAH_COUNT':
+      actualValue = santriData.surahsCompleted;
+      break;
+    case 'AYAH_COUNT':
+      actualValue = santriData.ayahsMemorized;
+      break;
+    case 'PERFECT_SCORE':
+      actualValue = santriData.perfectScores;
+      break;
+    case 'STREAK':
+      actualValue = santriData.streakDays;
+      break;
+    case 'CUSTOM':
+      actualValue = santriData.customData?.[badge.id] || 0;
+      break;
+    default:
+      return false;
+  }
+
+  switch (criteria.condition) {
+    case 'GREATER_THAN':
+      return actualValue >= criteria.value;
+    case 'EQUAL':
+      return actualValue === criteria.value;
+    case 'LESS_THAN':
+      return actualValue <= criteria.value;
+    default:
+      return false;
+  }
+};

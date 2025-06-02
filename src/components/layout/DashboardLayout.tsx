@@ -31,7 +31,8 @@ import {
   Database,
   DollarSign,
   TrendingUp,
-  Target
+  Target,
+  Award
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -106,6 +107,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: `/dashboard/${user?.role?.toLowerCase()}/hafalan/targets`,
           icon: Target,
           roles: ['ADMIN', 'MUSYRIF']
+        },
+        {
+          name: 'Achievement System',
+          href: `/dashboard/${user?.role?.toLowerCase()}/achievements`,
+          icon: Award,
+          roles: ['ADMIN', 'MUSYRIF', 'WALI']
         },
         {
           name: 'Absensi',

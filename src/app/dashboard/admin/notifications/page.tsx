@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import { Badge } from '@/components/ui/badge';
 import {
   Bell,
   Send,
@@ -26,26 +23,13 @@ import {
   FileText
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import {
+  Notification,
+  getNotificationStatusColor,
+  getNotificationStatusText
+} from '@/lib/quran-data';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  priority: string;
-  status: string;
-  channels: string;
-  recipientId?: string;
-  recipientType?: string;
-  scheduledAt?: string;
-  sentAt?: string;
-  readAt?: string;
-  createdAt: string;
-  recipient?: {
-    name: string;
-    email: string;
-  };
-}
+// Using Notification interface from quran-data.ts
 
 interface NotificationStats {
   total: number;
