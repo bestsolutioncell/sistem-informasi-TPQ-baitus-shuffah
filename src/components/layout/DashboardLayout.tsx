@@ -143,6 +143,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           href: `/dashboard/${user?.role?.toLowerCase()}/behavior/reports`,
           icon: FileText,
           roles: ['ADMIN', 'MUSYRIF']
+        },
+        {
+          name: 'Goal Karakter',
+          href: `/dashboard/${user?.role?.toLowerCase()}/behavior/goals`,
+          icon: Target,
+          roles: ['ADMIN', 'MUSYRIF']
         }
       ]
     },
