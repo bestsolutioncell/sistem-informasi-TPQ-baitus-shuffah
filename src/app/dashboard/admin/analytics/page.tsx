@@ -5,23 +5,18 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area
-} from 'recharts';
+import PaymentChart, {
+  generatePaymentRevenueData,
+  generatePaymentStatusData,
+  generatePaymentTypeData,
+  generateWeeklyTrendData
+} from '@/components/charts/PaymentChart';
+import AttendanceChart, {
+  generateWeeklyAttendanceData,
+  generateMonthlyAttendanceTrend,
+  generateAttendanceStatusData,
+  generateClassAttendanceData
+} from '@/components/charts/AttendanceChart';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -240,42 +235,7 @@ const AnalyticsPage = () => {
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Monthly Growth */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-teal-600" />
-                Pertumbuhan Bulanan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="santri" 
-                    stroke="#0ea5e9" 
-                    strokeWidth={2}
-                    name="Jumlah Santri"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="hafalan" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    name="Hafalan Selesai"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Revenue Chart */}
+          {/* Payment Revenue Chart */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -284,22 +244,43 @@ const AnalyticsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={monthlyStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => `${value / 1000000}M`} />
-                  <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="pembayaran" 
-                    stroke="#0d9488" 
-                    fill="#0d9488"
-                    fillOpacity={0.3}
-                    name="Pendapatan"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <PaymentChart
+                type="bar"
+                data={generatePaymentRevenueData([
+                  { paymentDate: '2024-01-15', amount: 22500000, status: 'PAID' },
+                  { paymentDate: '2024-02-15', amount: 24000000, status: 'PAID' },
+                  { paymentDate: '2024-03-15', amount: 26000000, status: 'PAID' },
+                  { paymentDate: '2024-04-15', amount: 27500000, status: 'PAID' },
+                  { paymentDate: '2024-05-15', amount: 29000000, status: 'PAID' },
+                  { paymentDate: '2024-06-15', amount: 31000000, status: 'PAID' }
+                ])}
+                height={300}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Weekly Payment Trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-teal-600" />
+                Tren Pembayaran Mingguan
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PaymentChart
+                type="line"
+                data={generateWeeklyTrendData([
+                  { paymentDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), amount: 1500000, status: 'PAID' },
+                  { paymentDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), amount: 2200000, status: 'PAID' },
+                  { paymentDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), amount: 1800000, status: 'PAID' },
+                  { paymentDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), amount: 2500000, status: 'PAID' },
+                  { paymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), amount: 1900000, status: 'PAID' },
+                  { paymentDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), amount: 2800000, status: 'PAID' },
+                  { paymentDate: new Date().toISOString(), amount: 2100000, status: 'PAID' }
+                ])}
+                height={300}
+              />
             </CardContent>
           </Card>
         </div>
@@ -315,49 +296,43 @@ const AnalyticsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={attendanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="hadir" stackId="a" fill="#10b981" name="Hadir" />
-                  <Bar dataKey="terlambat" stackId="a" fill="#f59e0b" name="Terlambat" />
-                  <Bar dataKey="tidak_hadir" stackId="a" fill="#ef4444" name="Tidak Hadir" />
-                </BarChart>
-              </ResponsiveContainer>
+              <AttendanceChart
+                type="bar"
+                data={generateWeeklyAttendanceData([
+                  { date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), status: 'LATE' },
+                  { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), status: 'ABSENT' },
+                  { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'PRESENT' },
+                  { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), status: 'LATE' },
+                  { date: new Date().toISOString(), status: 'PRESENT' }
+                ])}
+                height={300}
+              />
             </CardContent>
           </Card>
 
-          {/* Donation Distribution */}
+          {/* Payment Status Distribution */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Activity className="h-5 w-5 mr-2 text-teal-600" />
-                Distribusi Donasi
+                Status Pembayaran
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={donationCategories}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {donationCategories.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                </PieChart>
-              </ResponsiveContainer>
+              <PaymentChart
+                type="doughnut"
+                data={generatePaymentStatusData([
+                  { status: 'PAID', amount: 45000000 },
+                  { status: 'PENDING', amount: 12000000 },
+                  { status: 'OVERDUE', amount: 8000000 }
+                ])}
+                height={300}
+              />
             </CardContent>
           </Card>
         </div>

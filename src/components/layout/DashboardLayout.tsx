@@ -29,7 +29,8 @@ import {
   Brain,
   Monitor,
   Database,
-  DollarSign
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -135,9 +136,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           roles: ['ADMIN', 'MUSYRIF', 'WALI']
         },
         {
+          name: 'Analytics Dashboard',
+          href: `/dashboard/${user?.role?.toLowerCase()}/analytics`,
+          icon: BarChart3,
+          roles: ['ADMIN']
+        },
+        {
           name: 'Analytics Pembayaran',
           href: `/dashboard/${user?.role?.toLowerCase()}/analytics/payments`,
-          icon: BarChart3,
+          icon: TrendingUp,
           roles: ['ADMIN']
         },
         {
