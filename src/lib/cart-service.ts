@@ -331,7 +331,7 @@ export class CartService {
           type: CartItemType.SPP,
           id: student.id,
           name: `SPP ${student.name} - ${currentMonth}`,
-          description: `Pembayaran SPP bulanan`,
+          description: "Pembayaran SPP bulanan",
           price: sppAmount,
           category: 'SPP',
           metadata: {
