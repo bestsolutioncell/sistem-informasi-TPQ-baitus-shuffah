@@ -194,7 +194,7 @@ const AdminDashboard = () => {
                   const Icon = iconMap[activity.icon] || CreditCard;
                   return (
                     <div key={activity.id} className="flex items-start space-x-3">
-                      <div className={`p-2 rounded-full bg-gray-50`}>
+                      <div className={"p-2 rounded-full bg-gray-50"}>
                         <Icon className={`h-4 w-4 ${activity.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">

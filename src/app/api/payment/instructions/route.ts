@@ -136,7 +136,7 @@ function generatePaymentInstructions(paymentMethod: string, gateway: string, gat
     return [
       'Buka aplikasi Livin\' by Mandiri atau kunjungi ATM Mandiri',
       'Pilih menu "Bayar" > "Multipayment"',
-      `Masukkan kode perusahaan: 70012`,
+      "Masukkan kode perusahaan: 70012",
       `Masukkan nomor Virtual Account: ${gatewayResponse.va_numbers?.[0]?.va_number || 'Lihat di atas'}`,
       `Konfirmasi jumlah pembayaran: ${formatCurrency(gatewayResponse.gross_amount || 0)}`,
       'Masukkan PIN untuk otorisasi',
