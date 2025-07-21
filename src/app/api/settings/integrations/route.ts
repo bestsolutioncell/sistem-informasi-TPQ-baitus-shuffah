@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         appSecret: getSettingValue(settings, 'whatsapp', 'app_secret') || '',
         apiVersion: getSettingValue(settings, 'whatsapp', 'api_version') || 'v18.0',
         isConfigured: Boolean(getSettingValue(settings, 'whatsapp', 'access_token')),
-        status: Boolean(getSettingValue(settings, 'whatsapp', 'access_token')) ? 'connected' : 'disconnected'
+        status: (getSettingValue(settings, 'whatsapp', 'access_token')) ? 'connected' : 'disconnected'
       },
       email: {
         host: getSettingValue(settings, 'email', 'host') || 'smtp.gmail.com',
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         fromName: getSettingValue(settings, 'email', 'from_name') || 'TPQ Baitus Shuffah',
         fromAddress: getSettingValue(settings, 'email', 'from_address') || '',
         isConfigured: Boolean(getSettingValue(settings, 'email', 'user')),
-        status: Boolean(getSettingValue(settings, 'email', 'user')) ? 'connected' : 'disconnected'
+        status: (getSettingValue(settings, 'email', 'user')) ? 'connected' : 'disconnected'
       }
     };
 

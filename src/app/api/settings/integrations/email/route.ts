@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       fromName: getSettingValue(settings, 'from_name') || 'TPQ Baitus Shuffah',
       fromAddress: getSettingValue(settings, 'from_address') || '',
       isConfigured: Boolean(getSettingValue(settings, 'user')),
-      status: Boolean(getSettingValue(settings, 'user')) ? 'connected' : 'disconnected'
+      status: (getSettingValue(settings, 'user')) ? 'connected' : 'disconnected'
     };
 
     return NextResponse.json({

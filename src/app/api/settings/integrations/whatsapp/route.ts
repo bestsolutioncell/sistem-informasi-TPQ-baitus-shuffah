@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       appSecret: getSettingValue(settings, 'app_secret') || '',
       apiVersion: getSettingValue(settings, 'api_version') || 'v18.0',
       isConfigured: Boolean(getSettingValue(settings, 'access_token')),
-      status: Boolean(getSettingValue(settings, 'access_token')) ? 'connected' : 'disconnected'
+      status: (getSettingValue(settings, 'access_token')) ? 'connected' : 'disconnected'
     };
 
     return NextResponse.json({
